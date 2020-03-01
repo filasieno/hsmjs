@@ -1,0 +1,28 @@
+{
+  "name": "ihsm",
+  "version": "0.0.1",
+  "description": "A fully featured Hierarchical State Machine implementation in JS",
+  "main": "ihsm.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/filasieno/hsmjs.git"
+  },
+  "keywords": [
+    "hsm", "hierarchical", "fsm", "state machine", "hierarchical state machine"
+  ],
+  "author": "Fabio N. Filasieno",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/filasieno/hsmjs/issues"
+  },
+  "homepage": "https://github.com/filasieno/hsmjs#readme",
+  "dependencies": {
+    "queue": "^6.0.1"
+  },
+  "devDependencies": {
+    "mocha": "^7.1.0"
+  }
+}
