@@ -97,5 +97,5 @@
     "forceConsistentCasingInFileNames": true
     /* Disallow inconsistently-cased references to the same file. */
   },
-  "exclude": ["./dist/doc/**", "./build/"]
+  "exclude": ["./dist/doc/**", "./build/", "./karma.conf.js" ]
 }
