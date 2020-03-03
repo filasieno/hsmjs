@@ -18,7 +18,7 @@
     "sourceMap": true,
     /* Generates corresponding '.map' file. */
     // "outFile": ".",                        /* Concatenate and emit output to single file. */
-    "outDir": "./build",
+    "outDir": "./dist",
     /* Redirect output structure to the directory. */
     "rootDir": "./src/",
     /* Specify the root directory of input files. Use to control the output directory structure with --outDir. */
@@ -97,5 +97,5 @@
     "forceConsistentCasingInFileNames": true
     /* Disallow inconsistently-cased references to the same file. */
   },
-  "exclude": ["./dist/doc/**", "./build/", "./karma.conf.js" ]
+  "exclude": ["./dist/doc/**", "./dist/", "./karma.conf.js", "./dump", "./dist/"]
 }

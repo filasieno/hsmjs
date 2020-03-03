@@ -1,6 +1,6 @@
-describe("Hierarchical ProtocolState Machine creation test", async () => {
+describe("Hierarchical ProtocolState Machine creation test", () => {
 
-    it("Does nothing", async function (){
+    it("Does nothing", async function () {
         return null;
     })
 
