@@ -22,7 +22,7 @@ lib-cov
 coverage
 *.lcov
 
-# nyc test coverage
+# nyc examples coverage
 .nyc_output
 
 # Grunt intermediate storage (https://gruntjs.com/creating-plugins#storing-task-files)
@@ -75,16 +75,16 @@ typings/
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 
-# Next.test build output
+# Next.examples build output
 .next
 
-# Nuxt.test build / generate output
+# Nuxt.examples build / generate output
 .nuxt
 dist
 
 # Gatsby files
 .cache/
-# Comment in the public line in if your project uses Gatsby and *not* Next.test
+# Comment in the public line in if your project uses Gatsby and *not* Next.examples
 # https://nextjs.org/blog/next-9-1#public-directory-support
 # public
 

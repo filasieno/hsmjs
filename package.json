@@ -2,11 +2,13 @@
   "name": "ihsm",
   "version": "0.0.1",
   "description": "A fully featured Hierarchical State Machine implementation in JS",
-  "main": "src/main/ts/old/index.js",
+  "main": "src/old/index.js",
   "scripts": {
     "test": "node_modules/nodemon/bin/nodemon.js -w dist ./node_modules/.bin/jasmine —config=jasmine.json",
-    "pretest": "eslint --ignore-path .gitignore src/main/ts",
-    "build": "tsc --build tsconfig.json"
+    "lint": "eslint --ignore-path .gitignore src/",
+    "build": "tsc --build tsconfig.json",
+    "predoc": "del-cli ./build/doc/api",
+    "doc": "typedoc ./src"
   },
   "eslintConfig": {
     "env": {
@@ -49,6 +51,9 @@
     "jasmine": "^3.5.0",
     "node": "^13.9.0",
     "nodemon": "^2.0.2",
-    "typescript": "^3.8"
+    "typedoc": "^0.16.11",
+    "typescript": "^3.8",
+    "karma": "^4.0.0",
+    "karma-typescript": "4.1.1"
   }
 }

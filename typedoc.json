@@ -1,0 +1,6 @@
+{
+    "mode": "file",
+    "out": "dist/doc/api",
+    "tsconfig": "tsconfig.json"
+}
+

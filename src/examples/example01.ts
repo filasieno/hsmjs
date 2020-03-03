@@ -1,4 +1,4 @@
-import * as ihsm from "./ihsm";
+import * as ihsm from "../ihsm";
 
 
 namespace SM {
@@ -7,7 +7,7 @@ namespace SM {
         // The State machine state
         message!: string;
         @ihsm.message say(msg: string) {
-            this.logInfo(`I have to say this: "${msg}"`);
+            this.logInfo(`I have to say: "${msg}"`);
         }
         @ihsm.unknownMessage changeState() {}
     }

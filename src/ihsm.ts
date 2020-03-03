@@ -2,7 +2,7 @@ export { TopState, create, validateStateMachine, StateMachineProtocol } from "./
 
 
 export function initial<T>(classConstructor: new () => T) {
-    console.log("initial state declaration begin");
+    console.log(`initial state declaration begin`);
     console.log(classConstructor);
     console.log("initial state declaration end");
 }
