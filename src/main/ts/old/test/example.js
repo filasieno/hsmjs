@@ -1,4 +1,4 @@
-const ihsm = require("../ihsm");
+const ihsm = require("../../main/ts");
 
 exports.aNonStateExport = 10;
 

@@ -1,5 +1,5 @@
 const assert = require("assert");
-const fsm = require("../fsm");
+const fsm = require("../../main/ts/fsm");
 
 describe('Test FSM', () => {
     //this.timeout(20000);
@@ -66,7 +66,7 @@ describe('Test FSM', () => {
     });
 
 
-    it("Test send with wait send", async () => {
+    it("Test post with wait post", async () => {
         const SLEEP_TIME = 1;
 
         async function doStep(payload) {

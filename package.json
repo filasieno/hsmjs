@@ -2,16 +2,28 @@
   "name": "ihsm",
   "version": "0.0.1",
   "description": "A fully featured Hierarchical State Machine implementation in JS",
-  "main": "ihsm.js",
+  "main": "src/main/ts/old/index.js",
   "scripts": {
-    "test": "mocha"
+    "test": "node_modules/nodemon/bin/nodemon.js -w dist ./node_modules/.bin/jasmine —config=jasmine.json",
+    "pretest": "eslint --ignore-path .gitignore src/main/ts",
+    "build": "tsc --build tsconfig.json"
+  },
+  "eslintConfig": {
+    "env": {
+      "browser": true,
+      "node": true
+    }
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/filasieno/hsmjs.git"
   },
   "keywords": [
-    "hsm", "hierarchical", "fsm", "state machine", "hierarchical state machine"
+    "hsm",
+    "hierarchical",
+    "fsm",
+    "state machine",
+    "hierarchical state machine"
   ],
   "author": "Fabio N. Filasieno",
   "license": "MIT",
@@ -20,9 +32,23 @@
   },
   "homepage": "https://github.com/filasieno/hsmjs#readme",
   "dependencies": {
-    "queue": "^6.0.1"
+    "assert": "^2.0.0",
+    "queue": "^6.0.1",
+    "reflect-metadata": "^0.1.13",
+    "uninstall": "0.0.0"
   },
   "devDependencies": {
-    "mocha": "^7.1.0"
+    "@types/eslint": "^6.1.8",
+    "@types/jasmine": "^3.5.7",
+    "@types/node": "^13.7.7",
+    "@typescript-eslint/eslint-plugin": "^2.21.0",
+    "@typescript-eslint/parser": "^2.21.0",
+    "del-cli": "^3.0.0",
+    "eslint": "^6.8.0",
+    "eslint-config-google": "^0.14.0",
+    "jasmine": "^3.5.0",
+    "node": "^13.9.0",
+    "nodemon": "^2.0.2",
+    "typescript": "^3.8"
   }
 }

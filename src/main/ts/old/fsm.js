@@ -46,7 +46,7 @@ function logPlain(self, text) {
 class Actor {
     constructor(initialState, name, tracing) {
         assert(initialState, `Invalid initial state: ${initialState}"`);
-        assert(State.isPrototypeOf(initialState), "initialState must inherit from 'State'");
+        assert(State.isPrototypeOf(initialState), "initialState must inherit from 'ProtocolState'");
         this.__loglevel__ = tracing;
         this.__state__ = UninitializedState;
         this.__name__ = name;

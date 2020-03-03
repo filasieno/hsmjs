@@ -75,16 +75,16 @@ typings/
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 
-# Next.js build output
+# Next.test build output
 .next
 
-# Nuxt.js build / generate output
+# Nuxt.test build / generate output
 .nuxt
 dist
 
 # Gatsby files
 .cache/
-# Comment in the public line in if your project uses Gatsby and *not* Next.js
+# Comment in the public line in if your project uses Gatsby and *not* Next.test
 # https://nextjs.org/blog/next-9-1#public-directory-support
 # public
 
@@ -105,3 +105,11 @@ dist
 
 # Idea IDE
 .idea
+
+# Build dirs
+lib
+build
+dist
+
+# Typescript incremental file
+.tsc
