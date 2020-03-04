@@ -1,0 +1,70 @@
+//
+// Pick any class and transform it to a state machine.
+//
+//
+//
+
+import { initial } from "../../ihsm";
+import { Data } from "./user.component";
+
+type Constructor<State = {}> = new (...args: any[]) => State;
+
+class StateMachineState<State> {
+    currentState: State;
+    constructor(initialState: State) {
+        this.currentState = initialState;
+    }
+}
+
+function DefineStateMachineFor<State extends Constructor>(Base: State) : [] {
+    class UserTopState {
+        _init(...args: ConstructorParameters<State>) {
+            console.log("Begin Initialization callback");
+            console.log(args);
+        }
+        _entry() {
+
+        }
+        _exit() {
+
+        }
+    }
+
+    class StateMachineOld extends Base {
+        __state__ = new StateMachineState(UserTopState);
+        constructor(...args: any[]) {
+            super(args);
+            this.__state__.currentState.prototype._init.bind(this)(...args);
+        }
+        selfSend() {
+            console.log("selfSend")
+        }
+        post() {
+            console.log("post")
+        }
+    }
+
+    return [StateMachineOld, State]
+}
+
+let [UserComponentSM, State] = DefineStateMachineFor(Data);
+
+namespace StateMachineOld {
+
+    @initial
+    class Protocol extends State {
+
+    }
+
+    @initial
+    class WaitingEventsState extends Protocol {
+
+    }
+
+    class ProcessingState extends Protocol {
+
+    }
+
+}
+let uc = new UserComponentSM(10, 20); // FAILURE! The compiler accepts wrong arguments
+//

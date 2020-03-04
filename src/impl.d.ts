@@ -1,10 +1,10 @@
-// export interface StateMachineDefinition<UserTopState extends TopState> {
+// export interface StateMachineDefinition<UserTopState extends Protocol> {
 //     State: UserTopState;
 // }
 
 export type StateMachineDefinition<UserTopState extends TopState> = { State: UserTopState }
 
-export type Parameters<T> = T extends (...args: infer T) => any ? T : never;
+type Parameters<T> = T extends (...args: infer T) => any ? T : never;
 
 export declare class TopState {
     protected logError(err: Error, message: string): void;
@@ -21,8 +21,8 @@ export declare class StateMachineProtocol {
     send<TF extends Function>(signal: TF, ...payload: Parameters<TF>): Promise<void>;
 }
 
-export type StateMachine<UserTopState extends TopState> = UserTopState & StateMachineProtocol;
+export type StateMachineOld<UserTopState extends TopState> = UserTopState & StateMachineProtocol;
 
-export declare function create<UserTopState extends TopState>(definition: object): StateMachine<UserTopState>;
+export declare function create<UserTopState extends TopState>(definition: object): StateMachineOld<UserTopState>;
 
 export declare function validateStateMachine<UserTopState extends TopState>(definition: object): void;

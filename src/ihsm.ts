@@ -1,7 +1,9 @@
+type Constructor<T = {}> = new (...args: any[]) => T;
+
 export { TopState, create, validateStateMachine, StateMachineProtocol } from "./impl"
 
 
-export function initial<T>(classConstructor: new () => T) {
+export function initial<T>(classConstructor: Constructor<T>) {
     console.log(`initial state declaration begin`);
     console.log(classConstructor);
     console.log("initial state declaration end");

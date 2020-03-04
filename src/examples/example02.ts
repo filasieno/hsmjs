@@ -2,7 +2,7 @@
 import * as ihsm from "../ihsm";
 
 namespace SM {
-    
+
     export class State extends ihsm.TopState {
         // The State machine state
         message!: string;
