@@ -109,7 +109,9 @@ dist
 # Build dirs
 lib
 build
-dist
+.map
+.types
+**.map
 
 # Typescript incremental file
 .tsc

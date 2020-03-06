@@ -1,6 +1,6 @@
 //
 // function init(initialState) {
-//     return new Hsm(initialState);
+//     return new DataObject(initialState);
 // }
 //
 // let stateSet = new function configuration(){
@@ -12,7 +12,7 @@
 //     };
 //
 //     this.B = class extends State {
-//         static initial;
+//         static initialState;
 //
 //         stop() { }
 //

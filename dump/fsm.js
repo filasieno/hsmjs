@@ -145,25 +145,25 @@ async function dispatch(actor, messageType, messagePayload) {
 }
 
 function createSendTask(actor, messageType, messagePayload, resolve, reject) {
-    return function (callback) {
+    return function (doneCallback) {
         dispatch(actor, messageType, messagePayload)
             .then(function () { resolve(); })
             .catch(function (err) { reject(err); })
             .finally(function () {
-                callback();
+                doneCallback();
             })
 
     }
 }
 
 function createPostTask(actor, messageType, messagePayload) {
-    return function (callback) {
+    return function (doneCallback) {
         dispatch(actor, messageType, messagePayload)
             .catch(function (err) {
                 actor.post("onError", err);
             })
             .finally(function () {
-                callback();
+                doneCallback();
             })
     }
 }
