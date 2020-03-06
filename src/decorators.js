@@ -14,12 +14,20 @@ Object.defineProperty(exports, '__esModule', {value: true});
 const logging = __importStar(require('./logging'));
 
 function initialState(State) {
-    logging.info('initial state decorator called');
+    if (Object.prototype.hasOwnProperty.call(State.__proto__, 'initialState') && State.__proto__['initialState'] !== undefined) {
+        throw new Error(`@ihsm.initialState has been set twice for parent class "${State.__proto__.name}"; check all classes that extend "${State.__proto__.name}"`); //TODO: move to errors
+    }
+    // if (Object.prototype.hasOwnProperty.call(State// , 'isInitial') && State['isInitial'] !== undefined) {
+    //     throw new Error(`@ihsm.initialState has been set twice for target class: ${State.__proto__.name}`); //TODO: move to errors
+    // }
+    State.isInitial = true;
+    State.__proto__.initialState = State;
 }
 
 exports.initialState = initialState;
 
 function exceptionState(State) {
-    logging.info('exception state decorator called');
+    throw new Error(`Unimplemented`);
 }
+
 exports.exceptionState = exceptionState;

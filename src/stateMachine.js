@@ -12,7 +12,7 @@ Object.defineProperty(exports, '__esModule', {value: true});
 // End Util
 
 const logging = __importStar(require('./logging'));
-const queue = __importStar(require('./queue'));
+const queue = __importStar(require('./ihsm.queue'));
 
 class Reply {
     constructor(value, targetState) {
@@ -33,7 +33,7 @@ class StateBindObject {
 exports.StateBindObject = StateBindObject;
 
 class State extends StateBindObject {
-    async _init() { }
+    _init() { }
 
     async _exit() { }
 
@@ -43,14 +43,15 @@ class State extends StateBindObject {
 exports.State = State;
 
 class StateMachine {
-    constructor(initialState, protocol, data, logLevel = logging.Level.INFO) {
+    constructor(topState, data, logLevel = logging.Level.INFO) {
         const bindObject = new StateBindObject(data, this);
-        this.currentState = initialState;
+        this.currentState = topState;
         this.bindObject = bindObject;
         this.data = data;
         this.queue = queue.create();
         this.logLevel = logLevel;
-        this.protocol = protocol.prototype;
+        this.indent = 0;
+        this.name = data.__proto__.constructor.name;
     }
 
     send(signal, ...payload) {
@@ -86,6 +87,11 @@ class StateMachine {
     }
 
     logMe() {
+        logging.info(this);
+    }
+
+    unhandled() {
+        throw new Error(`${this} does not know how to handle a message in state "${this.currentState.name}"`);
     }
 }
 

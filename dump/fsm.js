@@ -107,66 +107,7 @@ class Actor {
 
 }
 
-function messageToString(messageType, messagePayload) {
-    return `#${messageType}`
-}
 
-async function dispatch(actor, messageType, messagePayload) {
-    actor.log(`Begin dispatch: ${messageToString(messageType, messagePayload)}`);
-    ++actor.__indent__;
-    try {
-        let messageHandler = actor.__state__.prototype[messageType];
-        if (!messageHandler) {
-            throw {
-                errorType: "UnknownMessage",
-                errorLevel: "Application Error",
-                errorMessage: `Cannot handle ${messageToString(messageType, messagePayload)}`,
-                actorType: `${actor.__name__}`,
-                currentState: `${actor.__state__.name}`,
-                toString: function () {
-                    return this.__name__ + ": " + this.message;
-                }
-            };
-        }
-        let result = messageHandler(actor, messagePayload);
-        if (result instanceof Promise) {
-            await result;
-        }
-        if (result === null || result === undefined) {
-            return null;
-        } else {
-            assert("Illegal return value: Messages must return null");
-        }
-    } finally {
-        --actor.__indent__;
-        actor.log("End Dispatch");
-    }
-    return null;
-}
-
-function createSendTask(actor, messageType, messagePayload, resolve, reject) {
-    return function (doneCallback) {
-        dispatch(actor, messageType, messagePayload)
-            .then(function () { resolve(); })
-            .catch(function (err) { reject(err); })
-            .finally(function () {
-                doneCallback();
-            })
-
-    }
-}
-
-function createPostTask(actor, messageType, messagePayload) {
-    return function (doneCallback) {
-        dispatch(actor, messageType, messagePayload)
-            .catch(function (err) {
-                actor.post("onError", err);
-            })
-            .finally(function () {
-                doneCallback();
-            })
-    }
-}
 
 function createActor(initialState, name = 'Actor', tracing = false) {
     return new Actor(initialState, name, tracing);

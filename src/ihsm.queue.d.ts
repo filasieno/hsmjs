@@ -1,5 +1,4 @@
-
-export declare interface Queue {
+export declare class Queue {
     push(task: () => void): void;
 }
 

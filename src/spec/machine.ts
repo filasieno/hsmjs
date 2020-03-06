@@ -16,9 +16,11 @@ export namespace Machine {
     }
 
     export class TopState extends ihsm.State<Demo> implements Protocol {
-        setMessage(msg: string): IO {
-            return undefined;
+        protected _init() {
+            this.hsm.logDebug("TopState init");
         }
+
+        setMessage(msg: string): IO { return this.hsm.unhandled(); }
         async getMessage(): Promise<string | undefined> {
             return undefined;
         }
@@ -28,29 +30,75 @@ export namespace Machine {
     }
 
     @ihsm.initialState
-    export class A extends TopState {
+    export class State1 extends TopState {
+        protected _init() {
+            this.hsm.logDebug("State1 init");
+        }
         protected async _entry() {
-            this.hsm.logDebug("A entry");
+            this.hsm.logDebug("State1 entry");
         }
 
         protected async _exit() {
-            this.hsm.logDebug("B exit");
+            this.hsm.logDebug("State1 exit");
         }
 
         tick() {
-            this.ctx.message = "A was here";
-            this.hsm.logDebug("Passed from A");
+            this.ctx.message = "State1 was here";
+            this.hsm.logDebug("Passed from State1");
             ++this.ctx.counter;
         }
     }
 
-    export class B extends TopState {
+    export class State11 extends State1 {
+        protected _init() {
+            this.hsm.logDebug("State11 init");
+        }
         protected async _entry() {
-            this.hsm.logDebug("B entry");
+            this.hsm.logDebug("State11 entry");
         }
 
         protected async _exit() {
-            this.hsm.logDebug("B exit");
+            this.hsm.logDebug("State11 exit");
+        }
+
+        tick() {
+            this.ctx.message = "State11 was here";
+            this.hsm.logDebug("Passed from State1");
+            ++this.ctx.counter;
+        }
+    }
+
+    @ihsm.initialState
+    export class State12 extends State1 {
+        protected _init() {
+            this.hsm.logDebug("State12 init");
+        }
+        protected async _entry() {
+            this.hsm.logDebug("State12 entry");
+        }
+
+        protected async _exit() {
+            this.hsm.logDebug("State12 exit");
+        }
+
+        tick() {
+            this.ctx.message = "State11 was here";
+            this.hsm.logDebug("Passed from State1");
+            ++this.ctx.counter;
+        }
+    }
+
+    export class State2 extends TopState {
+        protected _init() {
+            this.hsm.logDebug("State2 init");
+        }
+
+        protected async _entry() {
+            this.hsm.logDebug("State2 entry");
+        }
+
+        protected async _exit() {
+            this.hsm.logDebug("State2 exit");
         }
     }
 

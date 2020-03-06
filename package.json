@@ -9,6 +9,7 @@
     "test": "jasmine --config=jasmine.json",
     "autotest": "nodemon --ext js -w build --exec 'jasmine --config=jasmine.json'",
     "lint": "eslint --ignore-path .gitignore src/",
+    "fastbuild": "tsc",
     "build": "grunt build",
     "predoc": "del-cli ./build/doc/api",
     "doc": "typedoc ./src",

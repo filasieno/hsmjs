@@ -1,4 +1,5 @@
 import { Level as LogLevel } from "./logging"
+import { Queue } from "./ihsm.queue";
 
 export declare type Constructor<T = {}> = new (...args: any) => T;
 export declare type StateClass<Data> = Constructor<State<Data>>;
@@ -21,19 +22,20 @@ export declare class StateBindObject<Data> {
 }
 
 export declare class State<Data> extends StateBindObject<Data> {
-    protected _init(): Promise<void>;
+    protected _init(): void;
     protected _exit(): Promise<void>;
     protected _entry(): Promise<void>;
 }
 
 export declare class StateMachine<Data> {
-    private readonly protocol;
-    private readonly bindObject;
-    private readonly data;
-    private readonly queue;
-    private currentState;
-    private logLevel;
-    constructor(initialState: StateClass<Data>, protocol: StateClass<Data>, data: DataEx<Data>, logLevel?: LogLevel);
+    private readonly bindObject : StateBindObject<Data>;
+    private readonly data : Data;
+    private readonly queue : Queue;
+    private currentState : State<Data>;
+    private logLevel : LogLevel;
+    private indent : number;
+    public name: string;
+    constructor(topState: StateClass<Data>, protocol: StateClass<Data>, data: DataEx<Data>, logLevel?: LogLevel);
     send<Signal extends (...payload: any) => IO<Data> | AIO<Data>, Payload extends Parameters<(...payload: any) => any>>(signal: Signal, ...payload: Parameters<Signal>): void;
     valueWithTransition<ReturnValue>(returnValue: ReturnValue, targetState: StateClass<Data>): Promise<Reply<Data, ReturnValue>>;
     logTrace(msg: string): void;
@@ -43,4 +45,5 @@ export declare class StateMachine<Data> {
     logError(msg: string): void;
     logFatal(msg: string): void;
     logMe(): void;
+    unhandled(): void;
 }

@@ -73,8 +73,8 @@ export class s1 extends s {
     onInit()   { this.logInfo("s1-INIT;"); return s11; }
     onEntry()  { this.logInfo("s1-ENTRY;"); }
     onExit()   { this.logInfo("s1-EXIT;" ); }
-    onEventA() { this.logInfo("s1-A;"); return s1; }
-    onEventB() { this.logInfo("s1-B;"); return s11; }
+    onEventA() { this.logInfo("s1-State1;"); return s1; }
+    onEventB() { this.logInfo("s1-State2;"); return s11; }
     onEventC() { this.logInfo("s1-C;"); return s2; }
     onEventD() { return s11; }
 }

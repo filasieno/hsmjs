@@ -52,7 +52,6 @@ namespace SM {
 
 const msg = SM.TopState.prototype;
 const o1 = ihsm.init(new Pippo(), SM);
-const o2 = ihsm.create(SM);
 ihsm.send(o1, msg.eventA, 's');
 async function myFun() {
     //const result: string = await ihsm.asyncSendWithReply(o2, msg.eventB);

@@ -5,13 +5,13 @@
 //
 // let stateSet = new function configuration(){
 //
-//     this.A = class extends State {
+//     this.StateA = class extends State {
 //         stop(a, c, b) { }
 //
 //         async say(msg) { }
 //     };
 //
-//     this.B = class extends State {
+//     this.StateB = class extends State {
 //         static initialState;
 //
 //         stop() { }
@@ -19,7 +19,7 @@
 //         async say(self, msg) { }
 //     };
 //
-//     this.InitialState = class extends this.A {
+//     this.InitialState = class extends this.StateA {
 //         onEntry() { }
 //         async moveTo(nextState) { }
 //     };
