@@ -41,7 +41,7 @@ export namespace Machine {
         protected async _exit() {
             this.hsm.logDebug("State1 exit");
         }
-
+        setMessage(msg: string): IO { this.ctx.message = "I was set by State1" }
         tick() {
             this.ctx.message = "State1 was here";
             this.hsm.logDebug("Passed from State1");

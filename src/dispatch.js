@@ -84,7 +84,6 @@ function createPostTask(sm, signalName, payload) {
 // Public send API
 //
 function send(userActor, signal, ...payload) {
-    console.log(userActor.__state__);
     userActor.__state__.queue.push(createPostTask(userActor.__state__, signal.name, payload));
 }
 
