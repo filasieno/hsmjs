@@ -1,6 +1,6 @@
 //
 // function init(initialState) {
-//     return new DataObject(initialState);
+//     return new DataEx(initialState);
 // }
 //
 // let stateSet = new function configuration(){

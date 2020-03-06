@@ -115,3 +115,4 @@ build
 
 # Typescript incremental file
 .tsc
+*.tmp.txt

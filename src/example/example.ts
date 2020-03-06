@@ -1,4 +1,4 @@
-import * as ihsm from "../ihsm"
+import * as ihsm from '../ihsm';
 
 class Pippo {
     name!: string;
@@ -18,7 +18,6 @@ namespace SM {
     @ihsm.initialState
     export class S1 extends TopState {
         eventI() {
-
             return S2;
         }
     }

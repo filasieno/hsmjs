@@ -1,7 +1,8 @@
-describe("Hierarchical ProtocolState Machine creation test", () => {
+// import { Demo, Machine } from "./machine"
+// import * as chai from "chai"
 
-    it("Does nothing", async function () {
-        return null;
-    })
+describe('Hierarchical ProtocolState Machine creation test', () => {
+    it('Check is the initialState decorator has been set correctly', async function () {
 
+    });
 });

@@ -1,4 +1,4 @@
-import * as ihsm from "../ihsm"
+import * as ihsm from '../ihsm';
 
 class Pippo {
     name!: string;
@@ -10,7 +10,6 @@ namespace SM {
 
     interface Protocol {
         eventA(name: string): Promise<IO>;
-        eventB(): Promise<RIO<string>>;
         eventC(): IO
         eventD(): IO
         eventE(): IO
@@ -19,9 +18,6 @@ namespace SM {
 
     export class TopState extends ihsm.State<Pippo> implements Protocol {
         async eventA(name: string) {}
-        async eventB(): Promise<RIO<string>>{
-            return this.hsm.reply("hello");
-        }
         eventC() {}
         eventD() {}
         eventE() {}
@@ -54,11 +50,11 @@ namespace SM {
 
 }
 
-let msg = SM.TopState.prototype;
-let o1 = ihsm.initStateMachine(new Pippo(), SM);
-let o2 = ihsm.createStateMachine(SM);
-ihsm.send(o1, msg.eventA, "s");
+const msg = SM.TopState.prototype;
+const o1 = ihsm.init(new Pippo(), SM);
+const o2 = ihsm.create(SM);
+ihsm.send(o1, msg.eventA, 's');
 async function myFun() {
-    let result: string = await ihsm.asyncSendWithReply(o2, msg.eventB)
+    //const result: string = await ihsm.asyncSendWithReply(o2, msg.eventB);
 }
 

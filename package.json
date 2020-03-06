@@ -2,7 +2,7 @@
   "name": "ihsm",
   "version": "0.0.1",
   "description": "A fully featured Hierarchical State Machine implementation in JS",
-  "main": "dist/index.js",
+  "main": "lib/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "pretest": "npm run build",
@@ -41,8 +41,8 @@
   },
   "homepage": "https://github.com/filasieno/hsmjs#readme",
   "dependencies": {
-    "assert": "^2.0.0",
-    "grunt-ts": "^6.0.0-beta.22",
+    "@types/chai": "^4.2.10",
+    "chai": "^4.2.0",
     "queue": "^6.0.1"
   },
   "devDependencies": {
@@ -60,16 +60,10 @@
     "grunt-contrib-clean": "^2.0.0",
     "grunt-contrib-copy": "^1.0.0",
     "grunt-contrib-jasmine": "^2.1.0",
-    "hjson": "^3.2.1",
+    "grunt-ts": "^6.0.0-beta.22",
     "jasmine": "~3.5.0",
     "jasmine-core": "~3.5.0",
     "jasmine-spec-reporter": "~4.2.1",
-    "karma": "~4.3.0",
-    "karma-chrome-launcher": "~3.1.0",
-    "karma-coverage-istanbul-reporter": "~2.1.0",
-    "karma-jasmine": "~2.0.1",
-    "karma-jasmine-html-reporter": "^1.4.2",
-    "karma-typescript": "~4.1.1",
     "node": "~13.9.0",
     "nodemon": "~2.0.2",
     "protractor": "~5.4.3",
