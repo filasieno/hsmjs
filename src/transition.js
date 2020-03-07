@@ -15,6 +15,8 @@ const assert = require('assert');
 class Transition {
 	exitList = null;
 	entryList = null;
+	exitPrototypeList = null;
+	entryPrototypeList = null;
 }
 
 
@@ -29,7 +31,7 @@ function getTransition(src, dst) {
 	while (dst.hasOwnProperty('_initialState')) {
 		dst = dst._initialState;
 	}
-	while (cur !== end ) {
+	while (cur !== end) {
 		srcPath.push(cur);
 		srcIndex.set(cur, i);
 		cur = cur.__proto__;
@@ -48,6 +50,8 @@ function getTransition(src, dst) {
 	let tran = new Transition();
 	tran.exitList = srcPath;
 	tran.entryList = dstPath;
+	tran.exitPrototypeList = srcPath.map(x => x.prototype);
+	tran.entryPrototypeList = dstPath.map(x => x.prototype);
 	return tran;
 }
 
