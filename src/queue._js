@@ -74,7 +74,7 @@ class Queue extends EventEmitter {
                 }
 
                 if (err) {
-                    self.emit('error', err, job)
+                    self.emit('logError', err, job)
                 } else if (didTimeout === false) {
                     if (resultIndex !== null) {
                         self.results[resultIndex] = Array.prototype.slice.call(arguments, 1)
@@ -171,13 +171,13 @@ function clearTimers() {
 
 function callOnErrorOrEnd(cb) {
     let self = this;
-    this.on('error', onerror);
+    this.on('logError', onerror);
     this.on('end', onend);
 
     function onerror(err) { self.end(err) }
 
     function onend(err) {
-        self.removeListener('error', onerror);
+        self.removeListener('logError', onerror);
         self.removeListener('end', onend);
         cb(err, this.results);
     }

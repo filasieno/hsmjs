@@ -1,6 +1,7 @@
 import {StateMachine} from '../stateMachine';
 
 const {Machine, Demo} = require('./machine');
+
 const {TopState, State1, State2} = Machine;
 const {expect} = require('chai');
 const ihsm = require('../ihsm');
@@ -36,7 +37,7 @@ describe('Hierarchical State Machine creation', function() {
         });
     });
 
-    describe('send message', function() {
+    describe('sync send message', function() {
 
         let actor = null;
         let actorEx = null;//
@@ -45,10 +46,43 @@ describe('Hierarchical State Machine creation', function() {
             actor = new Demo();
             actorEx = ihsm.init(actor, Machine);
         });
-        afterEach(async function() { actor = null;});
+        afterEach(async function() {
+            actor = null;
+            actorEx = null;
+        });
+
         it('sends a message', async function() {
             ihsm.send(actor, msg.setMessage, "this is a message");
         });
+
+    });
+
+    describe('async send message', function() {
+
+        let actor = null;
+        let actorEx = null;
+
+        beforeEach(async function() {
+            actor = new Demo();
+            actorEx = ihsm.init(actor, Machine, );
+        });
+        afterEach(async function() {
+            actor = null;
+            actorEx = null;
+        });
+
+        it('sends a message', async function() {
+            ihsm.send(actor, msg.setMessage, "this is a message");
+        });
+
+        it('sends an async message', async function() {
+            await ihsm.asyncSend(actor, msg.setMessage, "this is a message");
+        });
+
+        it('sends an async that will trigger a transition', async function() {
+            await ihsm.asyncSend(actor, msg.tick);
+        });
+
     });
 
 });

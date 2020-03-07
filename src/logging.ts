@@ -1,27 +1,29 @@
-export enum Level {
+import { StateMachine } from "src/stateMachine";
+
+export enum LogLevel {
     TRACE, DEBUG, WARN, INFO, ERROR, FATAL
 }
 
-export const trace = function(msg: string) {
+export const logTrace = function<Data>(msg: string)  {
     console.log(msg);
 };
 
-export const debug = function(msg: string) {
+export const logDebug = function<Data>(msg: string) {
     console.log(msg);
 };
 
-export const info = function(msg: string) {
+export const logInfo = function<Data>(msg: string) {
     console.log(msg);
 };
 
-export const warn = function(msg: string) {
+export const logWarn = function<Data>(msg: string) {
     console.log(msg);
 };
 
-export const error = function(msg: string) {
+export const logError = function<Data>(msg: string) {
     console.log(msg);
 };
 
-export const fatal = function(msg: string) {
+export const logFatal = function<Data>(msg: string) {
     console.log(msg);
 };

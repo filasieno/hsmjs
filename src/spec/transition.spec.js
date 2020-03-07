@@ -12,7 +12,8 @@ const ihsm = __importStar(require('../ihsm'));
 const tran = __importStar(require('../transition'));
 
 describe("A suite for testing transition objects.", () => {
-	class A extends ihsm.State {}
+	class TopState extends ihsm.State {}
+	class A extends TopState {}
 	class A1 extends A {}
 	class A11 extends A1 {}
 	class A111 extends A11 {}
@@ -20,9 +21,9 @@ describe("A suite for testing transition objects.", () => {
 	class A21 extends A2 {}
 	class A211 extends A21 {}
 	class A2111 extends A211 {}
-	class B extends ihsm.State {}
+	class B extends TopState {}
 	class B1 extends B {}
-	class C extends ihsm.State {}
+	class C extends TopState {}
 	class C1 extends C {}
 	class C11 extends C1 {}
 	class C111 extends C11 {}

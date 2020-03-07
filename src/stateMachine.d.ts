@@ -1,4 +1,4 @@
-import { Level as LogLevel } from "./logging"
+import { LogLevel as LogLevel } from "./logging"
 import { Queue } from "./ihsm.queue";
 
 export declare type Constructor<T = {}> = new (...args: any) => T;
@@ -27,6 +27,15 @@ export declare class State<Data> extends StateBindObject<Data> {
     protected _entry(): Promise<void>;
 }
 
+export declare class Transition<Data> {
+    exitList: any[];
+    entryList: any[];
+}
+
+export declare class TransitionCache<Data> {
+    [src: string]: {[dest: string]: Transition<Data>}
+}
+
 export declare class StateMachine<Data> {
     private readonly bindObject : StateBindObject<Data>;
     private readonly data : Data;
@@ -35,6 +44,7 @@ export declare class StateMachine<Data> {
     private logLevel : LogLevel;
     private indent : number;
     public name: string;
+    public transitionCache: TransitionCache<Data>;
     constructor(topState: StateClass<Data>, protocol: StateClass<Data>, data: DataEx<Data>, logLevel?: LogLevel);
     send<Signal extends (...payload: any) => IO<Data> | AIO<Data>, Payload extends Parameters<(...payload: any) => any>>(signal: Signal, ...payload: Parameters<Signal>): void;
     valueWithTransition<ReturnValue>(returnValue: ReturnValue, targetState: StateClass<Data>): Promise<Reply<Data, ReturnValue>>;

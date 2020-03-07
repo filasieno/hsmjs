@@ -1,6 +1,8 @@
 'use strict';
 // Begin Utils
 // eslint-disable-next-line no-invalid-this
+
+
 const __importStar = (this && this.__importStar) || function(mod) {
     if (mod && mod.__esModule) return mod;
     const result = {};
@@ -13,6 +15,7 @@ Object.defineProperty(exports, '__esModule', {value: true});
 
 const logging = __importStar(require('./logging'));
 const queue = __importStar(require('./ihsm.queue'));
+const {LogLevel, logTrace, logDebug, logWarn, logInfo, logError, logFatal} = logging;
 
 class Reply {
     constructor(value, targetState) {
@@ -43,15 +46,18 @@ class State extends StateBindObject {
 exports.State = State;
 
 class StateMachine {
-    constructor(topState, data, logLevel = logging.Level.INFO) {
+    constructor(topState, data, logLevel = LogLevel.TRACE) {
+        const q = queue.create();
+        if (q === undefined) throw new Error('Cannot Create queue');
         const bindObject = new StateBindObject(data, this);
         this.currentState = topState;
         this.bindObject = bindObject;
         this.data = data;
-        this.queue = queue.create();
+        this.queue = q;
         this.logLevel = logLevel;
         this.indent = 0;
         this.name = data.__proto__.constructor.name;
+        this.transitionCache = {};
     }
 
     send(signal, ...payload) {
@@ -63,31 +69,41 @@ class StateMachine {
     }
 
     logTrace(msg) {
-        logging.trace(msg);
+        if (this.logLevel >= LogLevel.TRACE) {
+            logTrace(`${this.name}[${this.currentState.name}]:${msg}`);
+        }
     }
 
     logDebug(msg) {
-        logging.debug(msg);
+        if (this.logLevel >= LogLevel.DEBUG) {
+            logDebug(`${this.name}[${this.currentState.name}]:${msg}`);
+        }
     }
 
     logWarn(msg) {
-        logging.warn(msg);
+        if (this.logLevel >= LogLevel.WARN) {
+            logWarn(`${this.name}[${this.currentState.name}]:${msg}`);
+        }
     }
 
     logInfo(msg) {
-        logging.info(msg);
+        if (this.logLevel >= LogLevel.INFO) {
+            logInfo(`${this.name}[${this.currentState.name}]:${msg}`);
+        }
     }
 
     logError(msg) {
-        logging.error(msg);
+        if (this.logLevel >= LogLevel.ERROR) {
+            logError(`${this.name}[${this.currentState.name}]:${msg}`);
+        }
     }
 
     logFatal(msg) {
-        logging.fatal(msg);
+        logFatal(`${this.name}[${this.currentState.name}]:${msg}`);
     }
 
     logMe() {
-        logging.info(this);
+        logFatal(this);
     }
 
     unhandled() {

@@ -1,6 +1,6 @@
-import {fatal} from './logging';
+import {logFatal} from './logging';
 
 
 export function fail(msg: string) {
-    fatal(msg);
+    logFatal(msg);
 }
