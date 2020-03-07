@@ -15,6 +15,19 @@ class Transition {
 	entryList = null;
 	exitPrototypeList = null;
 	entryPrototypeList = null;
+
+	* getTransitionActions() {
+		for (const cls of this.exitList) {
+			if (cls.prototype.hasOwnProperty('_exit')) {
+				yield cls.prototype._exit;
+			}
+		}
+		for (const cls of this.entryList) {
+			if (cls.prototype.hasOwnProperty('_entry')) {
+				yield cls.prototype._entry;
+			}
+		}
+	}
 }
 
 function getTransition(src, dst) {
@@ -24,9 +37,6 @@ function getTransition(src, dst) {
 	let dstPath = [];
 	let cur = src;
 	let i = 0;
-	while (dst.hasOwnProperty('_initialState')) {
-		dst = dst._initialState;
-	}
 	while (cur !== end) {
 		srcPath.push(cur);
 		srcIndex.set(cur, i);
@@ -42,6 +52,10 @@ function getTransition(src, dst) {
 		}
 		dstPath.unshift(cur);
 		cur = cur.__proto__;
+	}
+	while (dst.hasOwnProperty('_initialState')) {
+		dst = dst._initialState;
+		dstPath.push(dst);
 	}
 
 	let tran = new Transition();

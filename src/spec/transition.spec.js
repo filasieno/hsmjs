@@ -13,35 +13,20 @@ const tran = __importStar(require('../transition'));
 
 describe('A suite for testing nextState objects.', () => {
 	class TopState extends ihsm.State {}
-
-	class A extends TopState {}
-
-	class A1 extends A {}
-
+	class A extends TopState  {}
+	class A1 extends A { _entry() {console.log(this.name+":ENTRY");}; _exit() {console.log(this.name+":EXIT");} }
 	class A11 extends A1 {}
-
-	class A111 extends A11 {}
-
+	class A111 extends A11 { _entry() {console.log(this.name+":ENTRY");}; _exit() {console.log(this.name+":EXIT");} }
 	class A2 extends A {}
-
-	class A21 extends A2 {}
-
+	class A21 extends A2 { _entry() {console.log(this.name+":ENTRY");}; _exit() {console.log(this.name+":EXIT");} }
 	class A211 extends A21 {}
-
-	class A2111 extends A211 {}
-
+	class A2111 extends A211 { _entry() {console.log(this.name+":ENTRY");}; _exit() {console.log(this.name+":EXIT");} }
 	class B extends TopState {}
-
-	class B1 extends B {}
-
+	class B1 extends B { _entry() {console.log(this.name+":ENTRY");}; _exit() {console.log(this.name+":EXIT");} }
 	class C extends TopState {}
-
 	class C1 extends C {}
-
 	class C11 extends C1 {}
-
 	class C111 extends C11 {}
-
 	class C1111 extends C111 {}
 
 	TopState._initialState = C;
@@ -86,10 +71,17 @@ describe('A suite for testing nextState objects.', () => {
 		expect(t.entryList).toEqual([C, C1, C11, C111, C1111]);
 	});
 
-	it('Checks nextState to another branch with common ancestor', function() {
+	it('Checks nextState to parent state which initial state is the current state', function() {
 		let t = tran.getTransition(C1111, TopState);
 		expect(t.exitList).toEqual([C1111, C111, C11, C1, C]);
 		expect(t.entryList).toEqual([C, C1, C11, C111, C1111]);
 	});
+
+	it('Checks transition actions', function() {
+		let t = tran.getTransition(A2111, B1);
+		let actionList = Array.from(t.getTransitionActions());
+		expect(actionList).toEqual([A2111.prototype._exit, A21.prototype._exit, B1.prototype._entry]);
+	});
+
 
 });
