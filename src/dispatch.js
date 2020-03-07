@@ -4,11 +4,12 @@ const {State} = require('./ihsm');
 function messageToString(messageType, messagePayload) {
     return `#${messageType}`;
 }
-async function executeTransition(sm, tr, targetState) {
+
+async function executeTransition(sm, tr) {
     const exitLen = tr.exitList.length;
     for (let i = 0; i < exitLen; ++i) {
         let stateProto = tr.exitList[i].prototype;
-        if (Object.prototype.hasOwnProperty.call(stateProto,'_exit')){
+        if (Object.prototype.hasOwnProperty.call(stateProto, '_exit')) {
             await stateProto._exit.call(sm.bindObject);
             console.log(`exit ${tr.exitList[i].name}`); //TODO:
         } else {
@@ -17,17 +18,18 @@ async function executeTransition(sm, tr, targetState) {
 
     }
     const entryLen = tr.entryList.length;
+    let lastState = sm.currentState;
     for (let i = 0; i < entryLen; ++i) {
-        let stateProto = tr.entryList[i].prototype;
-        if (Object.prototype.hasOwnProperty.call(stateProto,'_entry')){
+        lastState = tr.entryList[i];
+        let stateProto = lastState.prototype;
+        if (Object.prototype.hasOwnProperty.call(stateProto, '_entry')) {
             await stateProto._entry.call(sm.bindObject);
             console.log(`enter ${tr.entryList[i].name}`); //TODO:
         } else {
             console.log(`enter ${tr.entryList[i].name} [unimplemented]`); //TODO:
         }
-
     }
-    sm.currentState = targetState;
+    sm.currentState = lastState;
 }
 async function dispatch(sm, signalName, payload) {
     sm.logTrace(`Begin dispatch: ${messageToString(signalName, payload)}`);
@@ -50,38 +52,45 @@ async function dispatch(sm, signalName, payload) {
         }
 
         let result = messageHandler.call(sm.bindObject, payload);
+
         // In case of a Promise wait for the actual result
+        let output = undefined;
         if (result instanceof Promise) {
-            result = await result;
+            output = await result;
         }
 
-        if (State.isPrototypeOf(result)) {
+        if (sm.nextState != null) {
+            const destState = sm.nextState;
+
             // Begin Transition
-            sm.logTrace('Begin execute Transition');
+            sm.logTrace(`Begin Transition to: ${destState.name}`);
             const srcName = sm.currentState.name;
-            const destName = result.name;
+            const destName = destState.name;
             let cachedSrcDict = sm.transitionCache[srcName];
             if (cachedSrcDict === undefined) {
                 // No src dict found
-                const tr = getTransition(sm.currentState, result);
+                const tr = getTransition(sm.currentState, destState);
                 sm.transitionCache[srcName] = {[destName]: tr};
-                await executeTransition(sm, tr, result);
+                await executeTransition(sm, tr);
             } else {
                 // A src dict has been found
                 let cachedTransition = cachedSrcDict[destName];
                 if (cachedTransition === undefined) {
-                    const tr = getTransition(sm.currentState, result);
+                    const tr = getTransition(sm.currentState, destState);
                     cachedSrcDict[destName] = tr;
-                    await executeTransition(sm, tr, result);
+                    await executeTransition(sm, tr);
                 } else {
-                    await executeTransition(sm, cachedTransition, result);
+                    await executeTransition(sm, cachedTransition);
                 }
             }
-            sm.currentState = result;
+            sm.nextState = null;
             sm.logTrace('End execute Transition');
             // End Transition
-        } else if (result === undefined) {
-            return result;
+
+        }
+
+        if (output !== undefined) {
+            return output[0];
         }
 
     } finally {
@@ -92,17 +101,6 @@ async function dispatch(sm, signalName, payload) {
 }
 
 function createSendTask(sm, signalName, payload, resolve, reject) {
-    return function(doneCallback) {
-        dispatch(sm, signalName, payload)
-            .then(function() {resolve();})
-            .catch(function(err) { reject(err); })
-            .finally(function() {
-                doneCallback();
-            });
-    };
-}
-
-function createSendTaskWithReply(sm, signalName, payload, resolve, reject) {
     return function(doneCallback) {
         dispatch(sm, signalName, payload)
             .then(function(result) {resolve(result);})
@@ -143,12 +141,3 @@ function asyncSend(userDataEx, signal, ...payload) {
 }
 
 exports.asyncSend = asyncSend;
-
-
-function asyncSendWithReply(sm, signal, ...payload) {
-    return new Promise(function(resolve, reject) {
-        sm.queue.push(createSendTaskWithReply(sm, signal.name, payload, resolve, reject));
-    });
-}
-
-exports.asyncSendWithReply = asyncSendWithReply;

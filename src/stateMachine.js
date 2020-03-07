@@ -50,6 +50,7 @@ class StateMachine {
         const q = queue.create();
         if (q === undefined) throw new Error('Cannot Create queue');
         const bindObject = new StateBindObject(data, this);
+        this.topState = topState;
         this.currentState = topState;
         this.bindObject = bindObject;
         this.data = data;
@@ -58,6 +59,17 @@ class StateMachine {
         this.indent = 0;
         this.name = data.__proto__.constructor.name;
         this.transitionCache = {};
+        this.nextState = null;
+    }
+
+    tran(targetTransition) {
+        if (this.nextState) {
+            throw new Error('Illegal State: a nextState was set more than once');
+        }
+        if (this.topState.isPrototypeOf(this.nextState)) {
+            throw new Error('Illegal State');
+        }
+        this.nextState = targetTransition;
     }
 
     send(signal, ...payload) {

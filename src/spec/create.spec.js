@@ -72,15 +72,26 @@ describe('Hierarchical State Machine creation', function() {
         });
 
         it('sends a message', async function() {
-            ihsm.send(actor, msg.setMessage, "this is a message");
+            ihsm.send(actor, msg.setMessage, 'this is a message');
         });
 
         it('sends an async message', async function() {
-            await ihsm.asyncSend(actor, msg.setMessage, "this is a message");
+            await ihsm.asyncSend(actor, msg.setMessage, 'this is a message');
         });
 
-        it('sends an async that will trigger a transition', async function() {
+        it('sends an async that will trigger a nextState', async function() {
             await ihsm.asyncSend(actor, msg.tick);
+        });
+
+        it('changes state', async function() {
+            await ihsm.asyncSend(actor, msg.changeState, State2);
+            await ihsm.asyncSend(actor, msg.changeState, TopState);
+        });
+
+        it('sends an async that will trigger a nextState', async function() {
+            let value = ['Hello World'];
+            let res = await ihsm.asyncSend(actor, msg.sendBack, value);
+            expect(res).equals(value);
         });
 
     });

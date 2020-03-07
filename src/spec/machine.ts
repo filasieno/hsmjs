@@ -7,25 +7,27 @@ export class Demo {
 
 export namespace Machine {
 
-    type IO = ihsm.IO<Demo>;
-
     export interface Protocol {
-        setMessage(msg: string): IO;
-        tick(): IO;
+        setMessage(msg: string): void;
+        tick(): void;
     }
 
     export class TopState extends ihsm.State<Demo> implements Protocol {
-        setMessage(msg: string): IO {
+        setMessage(msg: string): void {
             return this.hsm.unhandled();
         }
-        tick(): IO { this.hsm.unhandled(); }
+        tick(): void { this.hsm.unhandled(); }
+        changeState(s: ihsm.State<Demo>): void {
+            this.hsm.nextState = TopState;
+        }
+        async sendBack(value: any): Promise<any> { return value; }
         async _entry() {}
         async _exit() {}
     }
 
     @ihsm.initialState
     export class State1 extends TopState {
-        setMessage(msg: string): IO { this.ctx.message = "I was set by State1" }
+        setMessage(msg: string): void { this.ctx.message = "I was set by State1" }
         tick() {
             this.ctx.message = "State1 was here";
             this.hsm.logDebug("Passed from State1");
@@ -59,10 +61,10 @@ export namespace Machine {
     @ihsm.initialState
     export class State112 extends State12 {
         _init() {}
-        tick() {
+        tick(): void {
             this.ctx.message = "State112 was here";
             ++this.ctx.counter;
-            return State11;
+            this.hsm.nextState = State1;
         }
         async _entry() {}
         async _exit() {}

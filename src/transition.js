@@ -43,6 +43,7 @@ function getTransition(src, dst) {
 		dstPath.unshift(cur);
 		cur = cur.__proto__;
 	}
+
 	let tran = new Transition();
 	tran.exitList = srcPath;
 	tran.entryList = dstPath;
