@@ -116,3 +116,6 @@ build
 # Typescript incremental file
 .tsc
 *.tmp.txt
+
+# Visual studio Code
+/.vscode/
