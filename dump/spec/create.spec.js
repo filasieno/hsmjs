@@ -1,27 +1,21 @@
-import {StateMachine} from '../stateMachine';
-
+const {StateMachine} = require('../stateMachine');
 const {Machine, Demo} = require('./machine');
-
 const {TopState, State1, State2} = Machine;
 const {expect} = require('chai');
 const ihsm = require('../ihsm');
 const msg = Machine.TopState.prototype;
 
-describe('Hierarchical State Machine creation', function() {
+describe('Hierarchical UserTopState Machine creation', function() {
 
     describe('@initialState decorator', function() {
         it('sets "initialState" in parent of the target class', async function() {
-            expect(TopState).have.key('initialState');
-            expect(TopState['initialState']).equals(State1);
+            expect(TopState).hasOwnProperty('_initialState');
+            expect(TopState['_initialState']).equals(State1);
         });
-//        it('sets "isInitial" = true in the target class', async function() {
-//            expect(State1).have.key('isInitial');
-//            expect(State1['isInitial']).equals(true);
-//        });
     });
 
     describe('init', function() {
-        it('adds a {__state__:StateMachine} property', async function() {
+        it('adds a {__hsm__:StateMachine} property', async function() {
             let demo = new Demo();
             let demoEx = ihsm.init(demo, Machine);
             expect(demoEx).hasOwnProperty('__state__');
@@ -52,7 +46,7 @@ describe('Hierarchical State Machine creation', function() {
         });
 
         it('sends a message', async function() {
-            ihsm.send(actor, msg.setMessage, "this is a message");
+            ihsm.send(actor, msg.setMessage, 'this is a message');
         });
 
     });
@@ -64,7 +58,7 @@ describe('Hierarchical State Machine creation', function() {
 
         beforeEach(async function() {
             actor = new Demo();
-            actorEx = ihsm.init(actor, Machine, );
+            actorEx = ihsm.init(actor, Machine);
         });
         afterEach(async function() {
             actor = null;

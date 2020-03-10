@@ -8,8 +8,7 @@ let __importStar = (this && this.__importStar) || function (mod) {
 	return result;
 };
 
-const ihsm = __importStar(require('../ihsm'));
-const tran = __importStar(require('../transition'));
+const ihsm = __importStar(require('../main'));
 
 describe('A suite for testing nextState objects.', () => {
 	class TopState extends ihsm.State {}
@@ -36,7 +35,7 @@ describe('A suite for testing nextState objects.', () => {
 	C111._initialState = C1111;
 
 	it('Checks nextState to another branch with common ancestor', function() {
-		let t = tran.getTransition(A111, A211);
+		let t = ihsm.getTransition(A111, A211);
 		expect(t.exitList).toEqual([A111, A11, A1]);
 		expect(t.entryList).toEqual([A2, A21, A211]);
 	});

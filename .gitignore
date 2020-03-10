@@ -119,3 +119,4 @@ build
 
 # Visual studio Code
 /.vscode/
+*.code-workspace

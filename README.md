@@ -5,7 +5,7 @@
 /*             |_| |_| |_| |___/ |_| |_| |_|                  */
 ```
 
-# Idiomatic Hierarchical State Machines
+# Idiomatic Hierarchical UserTopState Machines
 
 # Requirements
 

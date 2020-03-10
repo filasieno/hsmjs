@@ -1,18 +1,18 @@
 {
   "compilerOptions": {
     "incremental": true,
-    "target": "ES2017",
-    "module": "commonJS",
-    "allowJs": true,
+    "target": "es2017",
+    "module": "umd",
+    "allowJs": false,
     "checkJs": false,
     // "jsx": "preserve",                     // Specify JSX code generation: 'preserve', 'react-native', or 'react'.
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
     // "outFile": ".",                        // Concatenate and emit output to single file.
-    "outDir": "./build",
+    //"outDir": "./build",
     "rootDir": "./src/",
-    "composite": true,
+    "composite": false,
     "tsBuildInfoFile": "./.tsc",
     "removeComments": true,
     "noEmit": false,
@@ -44,7 +44,7 @@
     // "preserveSymlinks": true,              // Do not resolve the real path of symlinks.
     // "allowUmdGlobalAccess": true,          // Allow accessing UMD globals from modules.
     //"sourceRoot": "./src",                  // Specify the location where debugger should locate TypeScript files instead of source locations.
-    "mapRoot": "../.map",                      // Specify the location where debugger should locate map files instead of generated locations.
+    //"mapRoot": "../.map",                      // Specify the location where debugger should locate map files instead of generated locations.
     // "inlineSourceMap": true,               // Emit a single file with source maps instead of having a separate file.
     // "inlineSources": true,                 // Emit the source alongside the sourcemaps within a single file; requires '--inlineSourceMap' or '--sourceMap' to be set.
     "experimentalDecorators": true,           // Experimental Options
