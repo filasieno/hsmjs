@@ -6,8 +6,8 @@
     "allowJs": false,
     "checkJs": false,
     // "jsx": "preserve",                     // Specify JSX code generation: 'preserve', 'react-native', or 'react'.
-    "declaration": true,
-    "declarationMap": true,
+    "declaration": false,
+    "declarationMap": false,
     "sourceMap": true,
     // "outFile": ".",                        // Concatenate and emit output to single file.
     //"outDir": "./build",

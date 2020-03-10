@@ -1,3 +1,5 @@
+export declare class TaskQueue {
+    push(task: (doneCallback: () => void) => void): void;
+}
 
-export declare function createTaskQueue() : TaskQueue;
-export declare class TaskQueue { push(task: () => void): void; }
+export function createTaskQueue(): TaskQueue;

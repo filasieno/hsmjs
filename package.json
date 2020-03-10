@@ -1,13 +1,15 @@
 {
-  "name": "@filasieno/ihsm",
-  "version": "0.0.1",
+  "name": "ihsm",
+  "version": "0.0.4",
   "description": "A fully featured Hierarchical State Machine implementation in JS",
-  "main": "./lib/main.js",
-  "types": "./lib/main.d.ts",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
   "scripts": {
     "test": "mocha",
     "lint": "eslint --ignore-path .gitignore src/",
     "build": "tsc --build tsconfig.json",
+    "postbuild": "npm run dist",
+    "dist": "rm -Rf ./lib; mkdir ./lib && cp ./src/*.js ./lib && cp ./src/*.d.ts ./lib",
     "doc": "typedoc ./src"
   },
   "eslintConfig": {
@@ -31,9 +33,9 @@
   "author": "Fabio N. Filasieno",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/filasieno/hsmjs/issues"
+    "url": "https://github.com/filasieno/ihsm/issues"
   },
-  "homepage": "https://github.com/filasieno/hsmjs#readme",
+  "homepage": "https://github.com/filasieno/ihsm#readme",
   "dependencies": {
     "queue": "^6.0.1"
   },
