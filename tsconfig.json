@@ -59,14 +59,8 @@
   },
   "exclude": [
     "./lib",
-    "./dist",
     "./dump",
-    "./build",
-    "./.types",
-    "./karma.conf.js",
-    "Gruntfile.js",
     "tsconfig-*.js",
-    "Gruntfile.js",
     "node_modules"
   ]
 }
