@@ -13,9 +13,9 @@ export type TopStateConstructor<UserTopState extends State<UserTopState, UserDat
 };
 
 export type PostProtocol<UserTopState extends State<UserTopState, UserData>, UserData> = { [P in keyof UserTopState]: PostFunction<UserTopState[P]>; };
-export type PostFunction<EventHandler> = EventHandler extends (...args: infer Payload) => void | Promise<any> ? (...payload: Payload) => void : never;
+export type PostFunction<EventHandler> = EventHandler extends (...payload: infer Payload) => infer ReturnedValue ? ReturnedValue extends (void | undefined | null | Promise<any>) ? (...payload: Payload) => void : never : never;
 export type SendProtocol<UserTopState extends State<UserTopState, UserData>, UserData> = { [P in keyof UserTopState]: SendFunction<UserTopState[P]>; };
-export type SendFunction<EventHandler> = EventHandler extends (...args: infer Payload) => infer ReturnValue ? ReturnValue extends void ? (...payload: Payload) => Promise<void> : ReturnValue extends Promise<infer Value> ? (...payload: Payload) => Promise<Value> : never : never;
+export type SendFunction<EventHandler> = EventHandler extends (...payload: infer Payload) => infer ReturnedPromise ? ReturnedPromise extends Promise<infer Value> ? (...payload: Payload) => Promise<Value> : never : never;
 export type UserDataType<UserTopState extends State<UserTopState, any>> = UserTopState extends State<UserTopState, infer UserData> ? UserData : never;
 
 export interface IBaseHsm<UserTopState extends State<UserTopState, UserData>, UserData> {
@@ -35,6 +35,7 @@ export interface IHsm<UserTopState extends State<UserTopState, UserData>, UserDa
 export interface IBoundHsm<UserTopState extends State<UserTopState, UserData>, UserData> extends IBaseHsm<UserTopState, UserData> {
     transition(nextState: StateConstructor<UserTopState, UserData>): void;
     unhandled(): never;
+    wait(millis: number): Promise<void>;
     logTrace(msg?: any, ...optionalParameters: any[]): void;
     logDebug(msg?: any, ...optionalParameters: any[]): void;
     logWarn(msg?: any, ...optionalParameters: any[]): void;
@@ -62,8 +63,25 @@ export class State<UserTopState extends State<UserTopState, UserData>, UserData 
     }
 }
 
-export function create<UserTopState extends State<UserTopState, UserData>, UserData>(userData: UserData, topState: StateConstructor<UserTopState, UserData>): IHsm<UserTopState, UserData> {
-    return {} as IHsm<UserTopState, UserData>;
+export function create<UserTopState extends State<UserTopState, UserData>, UserData>(userData: UserData, topState: TopStateConstructor<UserTopState, UserData>, logLevel : LogLevel = LogLevel.INFO): IHsm<UserTopState, UserData> {
+    let hsm = new Hsm(topState, userData, logLevel);
+    let currState: StateConstructor<UserTopState, UserData> = topState;
+    while (true) {
+        if (Object.prototype.hasOwnProperty.call(currState.prototype, '_init')) {
+            currState.prototype['_init'].call(hsm, userData);
+            hsm.logTrace(`${currState.name} init done`);
+        } else {
+            hsm.logTrace(`${currState.name} init [unimplemented]`);
+        }
+        if (Object.prototype.hasOwnProperty.call(currState, 'initialState') && currState.initialState) {
+            hsm.logTrace(`${currState.name} initialState found on state '${currState.name}'`);
+            currState = currState.initialState;
+            hsm.currentState = currState!;
+        } else {
+            break;
+        }
+    }
+    return hsm;
 }
 
 export function init<UserTopState extends State<UserTopState, UserData>, UserData>(topState: TopStateConstructor<UserTopState, UserData>, logLevel: LogLevel = LogLevel.INFO, fieldName = 'hsm'): (constructor: new (...args: any[]) => any) => (new (...args: any[]) => any) {
@@ -74,8 +92,7 @@ export function init<UserTopState extends State<UserTopState, UserData>, UserDat
                 let self: { [k: string]: any } = this;
                 let hsm = new Hsm(topState, this as unknown as UserData, logLevel);
                 Object.defineProperty(self, fieldName, {
-                    get() { return hsm },
-                    set(_) { throw new Error(`Field ${fieldName} is constant`) }
+                    get() { return hsm }, set(_) { throw new Error(`Field ${fieldName} is constant`) }
                 });
                 let currState: StateConstructor<UserTopState, UserData> = topState;
                 while (true) {
@@ -190,6 +207,11 @@ class Hsm<UserTopState extends State<UserTopState, UserData>, UserData> implemen
     logInfo(msg?: any, ...optionalParameters: any[]): void { if (this.logLevel <= LogLevel.INFO) { this.log(msg, ...optionalParameters) } }
     logError(msg?: any, ...optionalParameters: any[]): void { if (this.logLevel <= LogLevel.ERROR) { this.log(msg, ...optionalParameters) } }
     logFatal(msg?: any, ...optionalParameters: any[]): void { this.log(msg, ...optionalParameters) }
+    wait(millis: number): Promise<void> {
+        return new Promise<void>(function (resolve){
+            setTimeout(function(){ resolve() }, millis);
+        });
+    }
 }
 
 function getTransition<UserTopState extends State<UserTopState, UserData>, UserData>(srcState: StateConstructor<UserTopState, UserData>, destState: StateConstructor<UserTopState, UserData>, topState: StateConstructor<UserTopState, UserData>): Transition<UserTopState, UserData> {
@@ -364,7 +386,7 @@ function createSendProtocol<UserTopState extends State<UserTopState, UserData>, 
     return new Proxy({}, asyncSendProtocolHandler) as unknown as SendProtocol<UserTopState, UserData>;
 }
 
-function createPostProtocol<UserTopState extends State<UserTopState, UserData>, UserData>(hsm: Hsm<UserTopState, UserData>): SendProtocol<UserTopState, UserData> {
+function createPostProtocol<UserTopState extends State<UserTopState, UserData>, UserData>(hsm: Hsm<UserTopState, UserData>): PostProtocol<UserTopState, UserData> {
     const sendProtocolHandler = {
         get: function (object: { [key: string]: any }, signalName: string) {
             if (signalName in object) {
@@ -381,42 +403,5 @@ function createPostProtocol<UserTopState extends State<UserTopState, UserData>, 
 
         }
     };
-    return new Proxy({}, sendProtocolHandler) as unknown as SendProtocol<UserTopState, UserData>;
+    return new Proxy({}, sendProtocolHandler) as unknown as PostProtocol<UserTopState, UserData>;
 }
-
-
-//export function init<UserTopState extends State<UserTopState, UserData>, UserData>(def: StateMachineDefinition<UserTopState, UserData>, data: UserData, logLevel: LogLevel = LogLevel.INFO): UserDataEx<UserTopState, UserData> {
-//    if (def === undefined) {
-//        throw new Error('def must not be null'); // TODO:
-//    }
-//    if (!def.TopState) {
-//        throw new Error('def must have a State'); // TODO:
-//    }
-//    let hsm: Hsm<UserTopState, UserData>;
-//    try {
-//        hsm = new Hsm(def.TopState, data, logLevel === undefined ? defaultLogLevel : logLevel);
-//        (data as UserDataEx<UserTopState, UserData>).__hsm__ = hsm;
-//    } catch (ex) {
-//        throw new Error(`failed to set property __hsm__ on ${Object.getPrototypeOf(data).constructor.name}`); // TODO: Set Error
-//    }
-//    let currState: StateConstructor<UserTopState, UserData> = def.TopState;
-//    while (true) {
-//        if (Object.prototype.hasOwnProperty.call(currState.prototype, '_init')) {
-//            currState.prototype['_init'].call(hsm);
-//            hsm.logTrace(`${currState.name} init done`);
-//        } else {
-//            hsm.logTrace(`${currState.name} init [unimplemented]`);
-//        }
-//
-//        console.log(currState);
-//
-//
-//        if (Object.prototype.hasOwnProperty.call(currState, 'initialState') && currState.initialState) {
-//            currState = currState.initialState;
-//            hsm.currentState = currState!;
-//        } else {
-//            break;
-//        }
-//    }
-//    return data as UserDataEx<UserTopState, UserData>;
-//}

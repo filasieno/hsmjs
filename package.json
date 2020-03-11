@@ -1,6 +1,6 @@
 {
   "name": "ihsm",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "An idiomatic hierarchical state machine",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
@@ -54,6 +54,6 @@
     "nodemon": "~2.0.2",
     "ts-node": "^8.6.2",
     "typedoc": "~0.16.11",
-    "typescript": "~3.8"
+    "typescript": "^3.2.4"
   }
 }
