@@ -1,7 +1,7 @@
 {
   "name": "ihsm",
-  "version": "0.0.5",
-  "description": "A fully featured Hierarchical State Machine implementation in JS",
+  "version": "0.0.6",
+  "description": "An idiomatic hierarchical state machine",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
   "scripts": {

@@ -120,3 +120,7 @@ build
 # Visual studio Code
 /.vscode/
 *.code-workspace
+
+# Generated files
+src/example/typing.js
+src/index.js

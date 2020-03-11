@@ -13,9 +13,9 @@ export type TopStateConstructor<UserTopState extends State<UserTopState, UserDat
 };
 
 export type PostProtocol<UserTopState extends State<UserTopState, UserData>, UserData> = { [P in keyof UserTopState]: PostFunction<UserTopState[P]>; };
-export type PostFunction<EventHandler> = EventHandler extends (...payload: any[]) => void | Promise<any> ? (...payload: any[]) => void : never;
+export type PostFunction<EventHandler> = EventHandler extends (...args: infer Payload) => void | Promise<any> ? (...payload: Payload) => void : never;
 export type SendProtocol<UserTopState extends State<UserTopState, UserData>, UserData> = { [P in keyof UserTopState]: SendFunction<UserTopState[P]>; };
-export type SendFunction<EventHandler> = EventHandler extends (...payload: any[]) => infer C ? C extends void ? (...payload: any[]) => Promise<void> : C extends Promise<infer RT> ? (...payload: any[]) => Promise<RT> : never : never;
+export type SendFunction<EventHandler> = EventHandler extends (...args: infer Payload) => infer ReturnValue ? ReturnValue extends void ? (...payload: Payload) => Promise<void> : ReturnValue extends Promise<infer Value> ? (...payload: Payload) => Promise<Value> : never : never;
 export type UserDataType<UserTopState extends State<UserTopState, any>> = UserTopState extends State<UserTopState, infer UserData> ? UserData : never;
 
 export interface IBaseHsm<UserTopState extends State<UserTopState, UserData>, UserData> {
