@@ -1,81 +1,22 @@
-// Type definitions for ihsm 1.0.0
-// Project: ihsm - Idiomatic Hierarchical State Machine - <https://github.com/filasieno/ihsm>
-// Definitions by: Fabio N. Filasieno <https://github.com/filasieno/ihsm>
-// TypeScript Version: 3.8
+import { createTaskQueue, TaskQueue } from "./taskqueue.ext";
 
-/**
- * import * as ihsm from "ihsm";
- *
- * The minimal state machine:
- *
- * ```typescript
- * namespace StateMachine {
- *     class topState extends ihsm.IState {
- *         sayHello() { console.log("Hello World"); }
- *     };
- * }
- * let obj = { ... }; // add some fields
- * ihsm.init(obj);
- *
- * ```
- */
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Exported Types
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-import { createTaskQueue, TaskQueue } from "./taskqueue";
-
-/**
- * Levels used for identifying the severity of an event.
- *
- * Levels are organized from most specific to least:
- *   - OFF: (most specific, no logging)
- *   - FATAL: (most specific, little data)
- *   - ERROR
- *   - WARN
- *   - INFO
- *   - DEBUG
- *   - TRACE (least specific, a lot of data)
- *   - ALL (least specific, all data)
- *
- * Typically, configuring a level in a filter or on a logger will cause logging events of that level
- * and those that are more specific to pass through the filter.
- *
- * A special level, ALL, is guaranteed to capture all levels when used in logging configurations.
- */
-export const enum LogLevel {
-    ALL = 0, TRACE = 20, DEBUG = 30, INFO = 30, WARN = 40, ERROR = 50, FATAL = 60, OFF = 70
-}
-
-export let defaultLogLevel: LogLevel = LogLevel.INFO;
-
-/**
- * Defines a State Class.
- */
 export type StateConstructor<UserTopState extends State<UserTopState, UserData>, UserData> = Function & {
     initialState?: StateConstructor<UserTopState, UserData>; exceptionState?: StateConstructor<UserTopState, UserData>; isInitialState?: boolean; prototype: State<UserTopState, UserData>;
 };
 
-/**
- * Defines tge State class..
- */
 export type TopStateConstructor<UserTopState extends State<UserTopState, UserData>, UserData> = Function & {
     initialState?: StateConstructor<UserTopState, UserData>; exceptionState?: StateConstructor<UserTopState, UserData>; isInitialState?: boolean; prototype: UserTopState;
 };
 
-/**
- * Any JS Object that does not have a property named *__hsm__* con be converted to a hierarchical state machine.
- *
- * The only requirement is that the field {@link UserDataEx.__hsm__} is not present in the object.
- *
- */
-export type UserDataEx<UserTopState extends State<UserTopState, UserData>, UserData> =
-    UserData
-    & { __hsm__: IHsm<UserTopState, UserData>; };
-
-export type StateMachineDefinition<UserTopState extends State<UserTopState, UserData>, UserData> = { TopState: TopStateConstructor<UserTopState, UserData> };
-export type MessageSender<MessageHandler> = MessageHandler extends (...payload: any[]) => void | Promise<any> ? (...payload: any[]) => void : never;
-export type AsyncMessageSender<MessageHandler> = MessageHandler extends (...payload: any[]) => infer C ? C extends void ? (...payload: any[]) => Promise<void> : C extends Promise<infer RT> ? (...payload: any[]) => Promise<RT> : never : never;
-export type SendProtocol<UserTopState extends State<UserTopState, UserData>, UserData> = { [P in keyof UserTopState]: MessageSender<UserTopState[P]> };
-export type AsyncSendProtocol<UserTopState extends State<UserTopState, UserData>, UserData> = { [P in keyof UserTopState]: AsyncMessageSender<UserTopState[P]> };
+export type PostProtocol<UserTopState extends State<UserTopState, UserData>, UserData> = { [P in keyof UserTopState]: PostFunction<UserTopState[P]>; };
+export type PostFunction<EventHandler> = EventHandler extends (...payload: any[]) => void | Promise<any> ? (...payload: any[]) => void : never;
+export type SendProtocol<UserTopState extends State<UserTopState, UserData>, UserData> = { [P in keyof UserTopState]: SendFunction<UserTopState[P]>; };
+export type SendFunction<EventHandler> = EventHandler extends (...payload: any[]) => infer C ? C extends void ? (...payload: any[]) => Promise<void> : C extends Promise<infer RT> ? (...payload: any[]) => Promise<RT> : never : never;
+export type UserDataType<UserTopState extends State<UserTopState, any>> = UserTopState extends State<UserTopState, infer UserData> ? UserData : never;
 
 export interface IBaseHsm<UserTopState extends State<UserTopState, UserData>, UserData> {
     logLevel: LogLevel;
@@ -83,16 +24,15 @@ export interface IBaseHsm<UserTopState extends State<UserTopState, UserData>, Us
     readonly typeName: string;
     readonly currentState: StateConstructor<UserTopState, UserData>;
     readonly topState: StateConstructor<UserTopState, UserData>;
+    readonly post: PostProtocol<UserTopState, UserData>;
 }
 
-export interface IHsm<UserTopState extends State<UserTopState, UserData>, UserData> extends IBaseHsm<UserTopState, UserData> {
-    readonly ctx: UserDataEx<UserTopState, UserData>;
+export interface IHsm<UserTopState extends State<UserTopState, UserData>, UserData = UserDataType<UserTopState>> extends IBaseHsm<UserTopState, UserData> {
+    readonly ctx: UserData;
     readonly send: SendProtocol<UserTopState, UserData>;
-    readonly asyncSend: AsyncSendProtocol<UserTopState, UserData>;
-    readonly queue: TaskQueue;
 }
 
-export interface IHsmObject<UserTopState extends State<UserTopState, UserData>, UserData> extends IBaseHsm<UserTopState, UserData> {
+export interface IBoundHsm<UserTopState extends State<UserTopState, UserData>, UserData> extends IBaseHsm<UserTopState, UserData> {
     transition(nextState: StateConstructor<UserTopState, UserData>): void;
     unhandled(): never;
     logTrace(msg?: any, ...optionalParameters: any[]): void;
@@ -103,18 +43,18 @@ export interface IHsmObject<UserTopState extends State<UserTopState, UserData>, 
     logFatal(msg?: any, ...optionalParameters: any[]): void;
 }
 
-export abstract class BindTarget<UserTopState extends State<UserTopState, UserData>, UserData> {
-    protected readonly ctx!: UserDataEx<UserTopState, UserData>;
-    protected readonly hsm!: IHsmObject<UserTopState, UserData>;
-    protected readonly send!: SendProtocol<UserTopState, UserData>;
-}
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Exported Values
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-export class State<UserTopState extends State<UserTopState, UserData>, UserData = { [k: string]: any }> extends BindTarget<UserTopState, UserData> {
-    constructor() {
-        super();
-        throw new Error("State classes are stateless and cannot be instantiated"); // TODO: Manage Errors
-    }
-    _init(): Promise<void> | void {}
+export enum LogLevel { ALL = 0, TRACE = 20, DEBUG = 30, INFO = 30, WARN = 40, ERROR = 50, FATAL = 60, OFF = 70 }
+
+export class State<UserTopState extends State<UserTopState, UserData>, UserData = { [key: string]: any }> {
+    protected constructor() {}
+    protected readonly ctx!: UserData;
+    protected readonly hsm!: IBoundHsm<UserTopState, UserData>;
+    protected readonly post!: PostProtocol<UserTopState, UserData>;
+    _init(...args: any[]): Promise<void> | void {}
     _exit(): Promise<void> | void {}
     _entry(): Promise<void> | void {}
     onError(err: Error): Promise<void> | void {
@@ -122,84 +62,42 @@ export class State<UserTopState extends State<UserTopState, UserData>, UserData 
     }
 }
 
-
-/**
- *
- * @param {StateMachineDefinition<UserTopState, UserData>} def
- */
-export function validate<UserTopState extends State<UserTopState, UserData>, UserData>(def: StateMachineDefinition<UserTopState, UserData>): void {
-    throw new Error("Unimplemented");
+export function create<UserTopState extends State<UserTopState, UserData>, UserData>(userData: UserData, topState: StateConstructor<UserTopState, UserData>): IHsm<UserTopState, UserData> {
+    return {} as IHsm<UserTopState, UserData>;
 }
 
-/**
- *
- * @param {StateMachineDefinition<UserTopState, UserData>} def
- * @param {UserData} data
- * @param {LogLevel} logLevel
- * @returns {UserDataEx<UserTopState, UserData>}
- */
-export function init<UserTopState extends State<UserTopState, UserData>, UserData>(def: StateMachineDefinition<UserTopState, UserData>, data: UserData, logLevel: LogLevel = LogLevel.INFO): UserDataEx<UserTopState, UserData> {
-    if (def === undefined) {
-        throw new Error('def must not be null'); // TODO:
-    }
-    if (!def.TopState) {
-        throw new Error('def must have a State'); // TODO:
-    }
-    let hsm: Hsm<UserTopState, UserData>;
-    try {
-        hsm = new Hsm(def.TopState, data, logLevel === undefined ? defaultLogLevel : logLevel);
-        (data as UserDataEx<UserTopState, UserData>).__hsm__ = hsm;
-    } catch (ex) {
-        throw new Error(`failed to set property __hsm__ on ${Object.getPrototypeOf(data).constructor.name}`); // TODO: Set Error
-    }
-    let currState: StateConstructor<UserTopState, UserData> = def.TopState;
-    while (true) {
-        if (Object.prototype.hasOwnProperty.call(currState.prototype, '_init')) {
-            currState.prototype['_init'].call(hsm);
-            hsm.logTrace(`${currState.name} init done`);
-        } else {
-            hsm.logTrace(`${currState.name} init [unimplemented]`);
-        }
-
-        console.log(currState);
-
-
-        if (Object.prototype.hasOwnProperty.call(currState, 'initialState') && currState.initialState) {
-            currState = currState.initialState;
-            hsm.currentState = currState!;
-        } else {
-            break;
+export function init<UserTopState extends State<UserTopState, UserData>, UserData>(topState: TopStateConstructor<UserTopState, UserData>, logLevel: LogLevel = LogLevel.INFO, fieldName = 'hsm'): (constructor: new (...args: any[]) => any) => (new (...args: any[]) => any) {
+    return function (constructor: new (...args: any[]) => any): new (...args: any[]) => any {
+        return class extends constructor {
+            constructor(...args: any[]) {
+                super(...args);
+                let self: { [k: string]: any } = this;
+                let hsm = new Hsm(topState, this as unknown as UserData, logLevel);
+                Object.defineProperty(self, fieldName, {
+                    get() { return hsm },
+                    set(_) { throw new Error(`Field ${fieldName} is constant`) }
+                });
+                let currState: StateConstructor<UserTopState, UserData> = topState;
+                while (true) {
+                    if (Object.prototype.hasOwnProperty.call(currState.prototype, '_init')) {
+                        currState.prototype['_init'].call(hsm, ...args);
+                        hsm.logTrace(`${currState.name} init done`);
+                    } else {
+                        hsm.logTrace(`${currState.name} init [unimplemented]`);
+                    }
+                    if (Object.prototype.hasOwnProperty.call(currState, 'initialState') && currState.initialState) {
+                        hsm.logTrace(`${currState.name} initialState found on state '${currState.name}'`);
+                        currState = currState.initialState;
+                        hsm.currentState = currState!;
+                    } else {
+                        break;
+                    }
+                }
+            }
         }
     }
-    return data as UserDataEx<UserTopState, UserData>;
 }
 
-/**
- *
- * @param {UserDataEx<UserTopState, UserData>} data
- * @returns {IHsm<UserTopState, UserData>}
- */
-export function get<UserTopState extends State<UserTopState, UserData>, UserData>(data: UserDataEx<UserTopState, UserData>): IHsm<UserTopState, UserData> {
-    return data.__hsm__;
-}
-
-/**
- * A utility function that initializes a user Object as a hierarchical state machine.
- *
- * @param {StateMachineDefinition<UserTopState, UserData>} def
- * @param {UserData} data
- * @param {LogLevel} logLevel
- * @returns {IHsm<UserTopState, UserData>}
- */
-export function initHsm<UserTopState extends State<UserTopState, UserData>, UserData>(def: StateMachineDefinition<UserTopState, UserData>, data: UserData, logLevel: LogLevel = LogLevel.INFO): IHsm<UserTopState, UserData> {
-    let dataEx = init(def, data, logLevel);
-    return get(dataEx);
-}
-
-/**
- *
- * @param {StateConstructor<UserTopState, UserData>} TargetState
- */
 export function initialState<UserTopState extends State<UserTopState, UserData>, UserData>(TargetState: StateConstructor<UserTopState, UserData>): void {
     let ParentOfTargetState = Object.getPrototypeOf(TargetState.prototype).constructor;
     if (ParentOfTargetState.initialState) {
@@ -212,26 +110,20 @@ export function initialState<UserTopState extends State<UserTopState, UserData>,
     ParentOfTargetState.initialState = TargetState;
 }
 
-/**
- *
- * @param {{new(): UserState}} state
- */
-export function errorState<UserState extends UserTopState, UserTopState extends State<UserTopState, UserData>, UserData>(state: new () => UserState): void {
-    throw new Error("Unimplemented"); //TODO:
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Private Types
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+interface IStateThisBinding<UserTopState extends State<UserTopState, UserData>, UserData> {
+    readonly ctx: UserData;
+    readonly hsm: IBoundHsm<UserTopState, UserData>;
+    readonly post: PostProtocol<UserTopState, UserData>;
 }
 
-/**
- *
- */
-interface OpenBindTarget<UserTopState extends State<UserTopState, UserData>, UserData> {
-    ctx: UserDataEx<UserTopState, UserData>;
-    hsm: IHsmObject<UserTopState, UserData>;
-    send: SendProtocol<UserTopState, UserData>;
-}
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Private Values
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-interface IInternalHsmUserTopState<UserTopState extends State<UserTopState, UserData>, UserData> extends IHsm<UserTopState, UserData> {
-    clearTransition(): void;
-}
 
 class Transition<UserTopState extends State<UserTopState, UserData>, UserData> {
 
@@ -247,25 +139,13 @@ class Transition<UserTopState extends State<UserTopState, UserData>, UserData> {
         this.entryPrototypeList = entryPrototypeList;
     }
 
-    * getTransitionActions() {
-        for (const cls of this.exitList) {
-            if (cls.prototype.hasOwnProperty('_exit')) {
-                yield cls.prototype._exit;
-            }
-        }
-        for (const cls of this.entryList) {
-            if (cls.prototype.hasOwnProperty('_entry')) {
-                yield cls.prototype._entry;
-            }
-        }
-    }
 }
 
-class Hsm<UserTopState extends State<UserTopState, UserData>, UserData> implements IInternalHsmUserTopState<UserTopState, UserData>, IHsmObject<UserTopState, UserData>, OpenBindTarget<UserTopState, UserData> {
-    hsm: IHsmObject<UserTopState, UserData>;
-    ctx: UserDataEx<UserTopState, UserData>;
+class Hsm<UserTopState extends State<UserTopState, UserData>, UserData> implements IStateThisBinding<UserTopState, UserData>, IBoundHsm<UserTopState, UserData>, IHsm<UserTopState, UserData> {
+    hsm: IBoundHsm<UserTopState, UserData>;
+    ctx: UserData;
+    post: PostProtocol<UserTopState, UserData>;
     send: SendProtocol<UserTopState, UserData>;
-    asyncSend: AsyncSendProtocol<UserTopState, UserData>;
     topState: StateConstructor<UserTopState, UserData>;
     currentState: StateConstructor<UserTopState, UserData>;
     typeName: string;
@@ -278,11 +158,10 @@ class Hsm<UserTopState extends State<UserTopState, UserData>, UserData> implemen
     indent: number;
 
     constructor(UserTopState: TopStateConstructor<UserTopState, UserData>, userData: UserData, logLevel: LogLevel) {
-        this.hsm = this as unknown as IHsmObject<UserTopState, UserData>;
-        this.ctx = (userData as UserDataEx<UserTopState, UserData>); //Mark user data
-        this.ctx.__hsm__ = this; // set link to the HSM
+        this.hsm = <any>this;
+        this.ctx = userData;
+        this.post = createPostProtocol(this);
         this.send = createSendProtocol(this);
-        this.asyncSend = createAsyncSendProtocol(this);
         this.topState = UserTopState;
         this.currentState = UserTopState;
         this.typeName = Object.getPrototypeOf(userData).constructor.name;
@@ -292,10 +171,6 @@ class Hsm<UserTopState extends State<UserTopState, UserData>, UserData> implemen
         this.transitionCache = new Map();
         this.queue = createTaskQueue();
         this.indent = 0;
-    }
-
-    clearTransition(): void {
-        this.nextState = undefined;
     }
 
     transition(nextState: new() => State<UserTopState, UserData>): void {
@@ -317,7 +192,7 @@ class Hsm<UserTopState extends State<UserTopState, UserData>, UserData> implemen
     logFatal(msg?: any, ...optionalParameters: any[]): void { this.log(msg, ...optionalParameters) }
 }
 
-export function getTransition<UserTopState extends State<UserTopState, UserData>, UserData>(srcState: StateConstructor<UserTopState, UserData>, destState: StateConstructor<UserTopState, UserData>, topState: StateConstructor<UserTopState, UserData>): Transition<UserTopState, UserData> {
+function getTransition<UserTopState extends State<UserTopState, UserData>, UserData>(srcState: StateConstructor<UserTopState, UserData>, destState: StateConstructor<UserTopState, UserData>, topState: StateConstructor<UserTopState, UserData>): Transition<UserTopState, UserData> {
     let src: any = srcState;
     let dst: any = destState;
     let srcPath = [];
@@ -442,51 +317,8 @@ async function dispatch<UserTopState extends State<UserTopState, UserData>, User
     }
 }
 
-///////////////////////////////////////////////////////////////////////////////
-// Message Send Protocol
-///////////////////////////////////////////////////////////////////////////////
-//
-// Public send API
-//
-//function send(userDataEx, signal, ...payload) {
-//    userDataEx.__state__.queue.push(createPostTask(userDataEx.__state__, signal.name, payload));
-//}
-//
-//exports.send = send;
-//
-//function asyncSend(userDataEx, signal, ...payload) {
-//    return new Promise(function(resolve, reject) {
-//        userDataEx.__state__.queue.push(createSendTask(userDataEx.__state__, signal.name, payload, resolve, reject));
-//    });
-//}
-//
-//function createSendTask(sm, signalName, payload, resolve, reject) {
-//    return function(doneCallback) {
-//        dispatch(sm, signalName, payload)
-//            .then(function(result) {resolve(result);})
-//            .catch(function(err) {reject(err);})
-//            .finally(function() {
-//                doneCallback();
-//            });
-//    };
-//}
-//
-//function createPostTask(sm, signalName, payload) {
-//    return function(doneCallback) {
-//        dispatch(sm, signalName, payload)
-//            .catch(function(err) {
-//                console.log(`${err}`);
-//                throw err;
-//                // createPostTask(sm, '_error', err);
-//            })
-//            .finally(function() {
-//                doneCallback();
-//            });
-//    };
-//}
 
-interface LooseObject {[key: string]: any}
-
+// Message Send Protocol ///////////////////////////////////////////////////////////////////////////////////////////////
 
 function createAsyncTask<UserTopState extends State<UserTopState, UserData>, UserData, ReturnType>(hsm: Hsm<UserTopState, UserData>, resolve: (value: ReturnType) => void, reject: (value: Error) => void, signalName: string, ...payload: any[]): (doneCallback: () => void) => void {
     return function (doneCallback: () => void) {
@@ -512,9 +344,9 @@ function createSyncTask<UserTopState extends State<UserTopState, UserData>, User
     };
 }
 
-function createAsyncSendProtocol<UserTopState extends State<UserTopState, UserData>, UserData>(hsm: Hsm<UserTopState, UserData>): AsyncSendProtocol<UserTopState, UserData> {
+function createSendProtocol<UserTopState extends State<UserTopState, UserData>, UserData>(hsm: Hsm<UserTopState, UserData>): SendProtocol<UserTopState, UserData> {
     const asyncSendProtocolHandler = {
-        get: function (object: LooseObject, signalName: string) {
+        get: function (object: { [key: string]: any }, signalName: string) {
             if (signalName in object) {
                 return object[signalName];
             }
@@ -529,12 +361,12 @@ function createAsyncSendProtocol<UserTopState extends State<UserTopState, UserDa
             return messageSender;
         }
     };
-    return new Proxy({}, asyncSendProtocolHandler) as unknown as AsyncSendProtocol<UserTopState, UserData>;
+    return new Proxy({}, asyncSendProtocolHandler) as unknown as SendProtocol<UserTopState, UserData>;
 }
 
-function createSendProtocol<UserTopState extends State<UserTopState, UserData>, UserData>(hsm: Hsm<UserTopState, UserData>): SendProtocol<UserTopState, UserData> {
+function createPostProtocol<UserTopState extends State<UserTopState, UserData>, UserData>(hsm: Hsm<UserTopState, UserData>): SendProtocol<UserTopState, UserData> {
     const sendProtocolHandler = {
-        get: function (object: LooseObject, signalName: string) {
+        get: function (object: { [key: string]: any }, signalName: string) {
             if (signalName in object) {
                 return object[signalName];
             }
@@ -551,3 +383,40 @@ function createSendProtocol<UserTopState extends State<UserTopState, UserData>, 
     };
     return new Proxy({}, sendProtocolHandler) as unknown as SendProtocol<UserTopState, UserData>;
 }
+
+
+//export function init<UserTopState extends State<UserTopState, UserData>, UserData>(def: StateMachineDefinition<UserTopState, UserData>, data: UserData, logLevel: LogLevel = LogLevel.INFO): UserDataEx<UserTopState, UserData> {
+//    if (def === undefined) {
+//        throw new Error('def must not be null'); // TODO:
+//    }
+//    if (!def.TopState) {
+//        throw new Error('def must have a State'); // TODO:
+//    }
+//    let hsm: Hsm<UserTopState, UserData>;
+//    try {
+//        hsm = new Hsm(def.TopState, data, logLevel === undefined ? defaultLogLevel : logLevel);
+//        (data as UserDataEx<UserTopState, UserData>).__hsm__ = hsm;
+//    } catch (ex) {
+//        throw new Error(`failed to set property __hsm__ on ${Object.getPrototypeOf(data).constructor.name}`); // TODO: Set Error
+//    }
+//    let currState: StateConstructor<UserTopState, UserData> = def.TopState;
+//    while (true) {
+//        if (Object.prototype.hasOwnProperty.call(currState.prototype, '_init')) {
+//            currState.prototype['_init'].call(hsm);
+//            hsm.logTrace(`${currState.name} init done`);
+//        } else {
+//            hsm.logTrace(`${currState.name} init [unimplemented]`);
+//        }
+//
+//        console.log(currState);
+//
+//
+//        if (Object.prototype.hasOwnProperty.call(currState, 'initialState') && currState.initialState) {
+//            currState = currState.initialState;
+//            hsm.currentState = currState!;
+//        } else {
+//            break;
+//        }
+//    }
+//    return data as UserDataEx<UserTopState, UserData>;
+//}
