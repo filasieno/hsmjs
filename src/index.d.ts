@@ -52,17 +52,13 @@ export declare enum LogLevel {
     FATAL = 60,
     OFF = 70
 }
-export declare class State<UserTopState extends State<UserTopState, UserData>, UserData = {
-    [key: string]: any;
-}> {
-    protected constructor();
-    protected readonly ctx: UserData;
-    protected readonly hsm: IBoundHsm<UserTopState, UserData>;
-    protected readonly post: PostProtocol<UserTopState, UserData>;
+export declare interface State<UserTopState extends State<UserTopState, UserData>, UserData = { [key: string]: any }> {
+    readonly ctx: UserData;
+    readonly hsm: IBoundHsm<UserTopState, UserData>;
+    readonly post: PostProtocol<UserTopState, UserData>;
     _init(...args: any[]): Promise<void> | void;
     _exit(): Promise<void> | void;
     _entry(): Promise<void> | void;
-    onError(err: Error): Promise<void> | void;
 }
 export declare function create<UserTopState extends State<UserTopState, UserData>, UserData>(userData: UserData, topState: TopStateConstructor<UserTopState, UserData>, logLevel?: LogLevel): IHsm<UserTopState, UserData>;
 export declare function init<UserTopState extends State<UserTopState, UserData>, UserData>(topState: TopStateConstructor<UserTopState, UserData>, logLevel?: LogLevel, fieldName?: string): (constructor: new (...args: any[]) => any) => (new (...args: any[]) => any);

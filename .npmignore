@@ -108,6 +108,7 @@ dist
 
 # Build dirs
 dump
+src
 build
 .map
 .types

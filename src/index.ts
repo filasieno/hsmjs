@@ -50,17 +50,13 @@ export interface IBoundHsm<UserTopState extends State<UserTopState, UserData>, U
 
 export enum LogLevel { ALL = 0, TRACE = 20, DEBUG = 30, INFO = 30, WARN = 40, ERROR = 50, FATAL = 60, OFF = 70 }
 
-export class State<UserTopState extends State<UserTopState, UserData>, UserData = { [key: string]: any }> {
-    protected constructor() {}
-    protected readonly ctx!: UserData;
-    protected readonly hsm!: IBoundHsm<UserTopState, UserData>;
-    protected readonly post!: PostProtocol<UserTopState, UserData>;
-    _init(...args: any[]): Promise<void> | void {}
-    _exit(): Promise<void> | void {}
-    _entry(): Promise<void> | void {}
-    onError(err: Error): Promise<void> | void {
-        this.hsm.logError(err);
-    }
+export interface State<UserTopState extends State<UserTopState, UserData>, UserData = { [key: string]: any }> {
+    readonly ctx: UserData;
+    readonly hsm: IBoundHsm<UserTopState, UserData>;
+    readonly post: PostProtocol<UserTopState, UserData>;
+    _init(...args: any[]): Promise<void> | void;
+    _exit(): Promise<void> | void;
+    _entry(): Promise<void> | void;
 }
 
 export function create<UserTopState extends State<UserTopState, UserData>, UserData>(userData: UserData, topState: TopStateConstructor<UserTopState, UserData>, logLevel : LogLevel = LogLevel.INFO): IHsm<UserTopState, UserData> {

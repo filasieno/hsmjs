@@ -1,6 +1,16 @@
+import { IBoundHsm, PostProtocol } from "../index";
 import * as ihsm from "../index";
 
-abstract class TopState extends ihsm.State<TopState, MyData> {
+abstract class TopState implements ihsm.State<TopState, MyData> {
+    readonly ctx!: MyData;
+    readonly hsm!: IBoundHsm<TopState, MyData>;
+    readonly post!: PostProtocol<TopState, MyData>;
+
+    _init(...args: any[]): Promise<void> | void {}
+    _entry(): Promise<void> | void {}
+    _exit(): Promise<void> | void {}
+
+    // Protocol
     abstract async switchAndLog(preMessage: string, postMessage: string): Promise<void>;
     abstract setAndGet(msg: string): Promise<string>;
     async hello(msg: string) {
@@ -11,6 +21,7 @@ abstract class TopState extends ihsm.State<TopState, MyData> {
         await this.hsm.wait(1000);
         this.hsm.logInfo(`${msg} 3`);
     }
+
 }
 
 @ihsm.initialState
