@@ -122,3 +122,10 @@ html
 # Visual studio Code
 /.vscode/
 *.code-workspace
+
+
+# Project files
+tsconfig.browser.json
+tsconfig.node.json
+typedoc.json
+.eslintrc.json
