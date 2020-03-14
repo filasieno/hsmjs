@@ -52,7 +52,9 @@ export declare enum LogLevel {
     FATAL = 60,
     OFF = 70
 }
-export declare interface State<UserTopState extends State<UserTopState, UserData>, UserData = { [key: string]: any }> {
+export interface State<UserTopState extends State<UserTopState, UserData>, UserData = {
+    [key: string]: any;
+}> {
     readonly ctx: UserData;
     readonly hsm: IBoundHsm<UserTopState, UserData>;
     readonly post: PostProtocol<UserTopState, UserData>;

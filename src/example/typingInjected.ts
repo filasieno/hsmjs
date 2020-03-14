@@ -41,6 +41,12 @@ class State1 extends TopState {
     }
 }
 
+@ihsm.init(TopState, ihsm.LogLevel.TRACE)
+class MyData {
+    hsm!: ihsm.IHsm<TopState, MyData>;
+    name?: string;
+}
+
 export class State2 extends TopState {
 
     async switchAndLog(preMessage: string, postMessage: string) {
@@ -53,14 +59,6 @@ export class State2 extends TopState {
         this.ctx.name = name;
         return name;
     }
-}
-
-@ihsm.init(TopState, ihsm.LogLevel.TRACE)
-class MyData {
-    hsm!: ihsm.IHsm<TopState, MyData>;
-    name?: string;
-    surname?: string;
-    millis = 100;
 }
 
 async function Injected() {

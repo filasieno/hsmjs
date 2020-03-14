@@ -110,6 +110,7 @@ dist
 dump
 src
 build
+html
 .map
 .types
 **.map

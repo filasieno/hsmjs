@@ -1,4 +1,9 @@
-import { createTaskQueue, TaskQueue } from "./taskqueue";
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+//
+//
+//
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Exported Types
@@ -59,7 +64,7 @@ export interface State<UserTopState extends State<UserTopState, UserData>, UserD
     _entry(): Promise<void> | void;
 }
 
-export function create<UserTopState extends State<UserTopState, UserData>, UserData>(userData: UserData, topState: TopStateConstructor<UserTopState, UserData>, logLevel : LogLevel = LogLevel.INFO): IHsm<UserTopState, UserData> {
+export function create<UserTopState extends State<UserTopState, UserData>, UserData>(userData: UserData, topState: TopStateConstructor<UserTopState, UserData>, logLevel: LogLevel = LogLevel.INFO): IHsm<UserTopState, UserData> {
     let hsm = new Hsm(topState, userData, logLevel);
     let currState: StateConstructor<UserTopState, UserData> = topState;
     while (true) {
@@ -127,6 +132,8 @@ export function initialState<UserTopState extends State<UserTopState, UserData>,
 // Private Types
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+type Task = (done: () => void) => void;
+
 interface IStateThisBinding<UserTopState extends State<UserTopState, UserData>, UserData> {
     readonly ctx: UserData;
     readonly hsm: IBoundHsm<UserTopState, UserData>;
@@ -167,8 +174,9 @@ class Hsm<UserTopState extends State<UserTopState, UserData>, UserData> implemen
     nextState?: StateConstructor<UserTopState, UserData>;
     transitionCache: Map<[StateConstructor<UserTopState, UserData>, StateConstructor<UserTopState, UserData>], Transition<UserTopState, UserData>>;
     log: (message?: string, ...optionalParameters: any[]) => void;
-    queue: TaskQueue;
     indent: number;
+    jobs: Task[] = [];
+    isRunning: boolean;
 
     constructor(UserTopState: TopStateConstructor<UserTopState, UserData>, userData: UserData, logLevel: LogLevel) {
         this.hsm = <any>this;
@@ -182,11 +190,12 @@ class Hsm<UserTopState extends State<UserTopState, UserData>, UserData> implemen
         this.logLevel = logLevel;
         this.log = console.log;
         this.transitionCache = new Map();
-        this.queue = createTaskQueue();
+        this.jobs = [];
+        this.isRunning = false;
         this.indent = 0;
     }
 
-    transition(nextState: new() => State<UserTopState, UserData>): void {
+    transition(nextState: new () => State<UserTopState, UserData>): void {
         if (nextState === undefined) {
             throw new Error("Cannot transition to undefined"); // TODO:
         }
@@ -197,28 +206,67 @@ class Hsm<UserTopState extends State<UserTopState, UserData>, UserData> implemen
         throw new Error("Unhandled method"); // TODO:
     }
 
-    logTrace(msg?: any, ...optionalParameters: any[]): void { if (this.logLevel <= LogLevel.TRACE) { this.log(msg, ...optionalParameters) } }
-    logDebug(msg?: any, ...optionalParameters: any[]): void { if (this.logLevel <= LogLevel.DEBUG) { this.log(msg, ...optionalParameters) } }
-    logWarn(msg?: any, ...optionalParameters: any[]): void { if (this.logLevel <= LogLevel.WARN) { this.log(msg, ...optionalParameters) } }
-    logInfo(msg?: any, ...optionalParameters: any[]): void { if (this.logLevel <= LogLevel.INFO) { this.log(msg, ...optionalParameters) } }
-    logError(msg?: any, ...optionalParameters: any[]): void { if (this.logLevel <= LogLevel.ERROR) { this.log(msg, ...optionalParameters) } }
-    logFatal(msg?: any, ...optionalParameters: any[]): void { this.log(msg, ...optionalParameters) }
-    wait(millis: number): Promise<void> {
-        return new Promise<void>(function (resolve){
-            setTimeout(function(){ resolve() }, millis);
+    public logTrace(msg?: any, ...optionalParameters: any[]): void { if (this.logLevel <= LogLevel.TRACE) { this.log(msg, ...optionalParameters) } }
+    public logDebug(msg?: any, ...optionalParameters: any[]): void { if (this.logLevel <= LogLevel.DEBUG) { this.log(msg, ...optionalParameters) } }
+    public logWarn(msg?: any, ...optionalParameters: any[]): void { if (this.logLevel <= LogLevel.WARN) { this.log(msg, ...optionalParameters) } }
+    public logInfo(msg?: any, ...optionalParameters: any[]): void { if (this.logLevel <= LogLevel.INFO) { this.log(msg, ...optionalParameters) } }
+    public logError(msg?: any, ...optionalParameters: any[]): void { if (this.logLevel <= LogLevel.ERROR) { this.log(msg, ...optionalParameters) } }
+    public logFatal(msg?: any, ...optionalParameters: any[]): void { this.log(msg, ...optionalParameters) }
+    public wait(millis: number): Promise<void> {
+        return new Promise<void>(function (resolve) {
+            setTimeout(function () { resolve() }, millis);
+        });
+    }
+
+    public pushTask(t: (done: () => void) => void): void {
+        console.log("enqueue");
+        this.jobs.push(t);
+        if (this.isRunning) {
+            return;
+        }
+        this.isRunning = true;
+        this.dequeue();
+    }
+
+    private dequeue(): void {
+        if (this.jobs.length == 0) {
+            this.isRunning = false;
+            return;
+        }
+        let task = this.jobs.shift();
+        this.exec(task!);
+    }
+
+    private exec(task: Task) {
+        let self = this;
+        queueMicrotask(function (): void {
+            Promise
+                .resolve()
+                .then(function () {
+                    console.log("Begin task")
+                })
+                .then(function () {
+                    return new Promise<void>(function (resolve: () => void) { task(resolve) })
+                })
+                .then(function () {
+                    console.log("End task")
+                })
+                .then(function () {
+                    self.dequeue()
+                });
         });
     }
 }
 
 function getTransition<UserTopState extends State<UserTopState, UserData>, UserData>(srcState: StateConstructor<UserTopState, UserData>, destState: StateConstructor<UserTopState, UserData>, topState: StateConstructor<UserTopState, UserData>): Transition<UserTopState, UserData> {
-    let src: any = srcState;
-    let dst: any = destState;
-    let srcPath = [];
-    const end = topState;
-    let srcIndex = new Map();
-    let dstPath = [];
-    let cur = src;
-    let i = 0;
+    let src: StateConstructor<UserTopState, UserData> = srcState;
+    let dst: StateConstructor<UserTopState, UserData> = destState;
+    let srcPath: StateConstructor<UserTopState, UserData>[] = [];
+    const end: StateConstructor<UserTopState, UserData> = topState;
+    let srcIndex: Map<StateConstructor<UserTopState, UserData>, number> = new Map();
+    let dstPath: StateConstructor<UserTopState, UserData>[] = [];
+    let cur: StateConstructor<UserTopState, UserData> = src;
+    let i: number = 0;
 
     while (cur !== end) {
         srcPath.push(cur);
@@ -239,7 +287,7 @@ function getTransition<UserTopState extends State<UserTopState, UserData>, UserD
     }
 
     while (dst.hasOwnProperty('initialState')) {
-        dst = dst.initialState;
+        dst = dst.initialState!;
         dstPath.push(dst);
     }
 
@@ -280,7 +328,7 @@ async function executeTransition<UserTopState extends State<UserTopState, UserDa
     sm.currentState = lastState;
 }
 
-async function dispatch<UserTopState extends State<UserTopState, UserData>, UserData>(hsm: Hsm<UserTopState, UserData>, signalName: string, ...payload: any[]) {
+async function dispatch<UserTopState extends State<UserTopState, UserData>, UserData>(hsm: Hsm<UserTopState, UserData>, signalName: string, ...payload: any[]): Promise<any> {
     hsm.logTrace(`Begin dispatch: #${signalName}`);
     ++hsm.indent;
     try {
@@ -338,7 +386,7 @@ async function dispatch<UserTopState extends State<UserTopState, UserData>, User
 
 // Message Send Protocol ///////////////////////////////////////////////////////////////////////////////////////////////
 
-function createAsyncTask<UserTopState extends State<UserTopState, UserData>, UserData, ReturnType>(hsm: Hsm<UserTopState, UserData>, resolve: (value: ReturnType) => void, reject: (value: Error) => void, signalName: string, ...payload: any[]): (doneCallback: () => void) => void {
+function createAsyncTask<UserTopState extends State<UserTopState, UserData>, UserData, ReturnType>(hsm: Hsm<UserTopState, UserData>, resolve: (value: ReturnType | undefined) => void, reject: (value: Error) => void, signalName: string, ...payload: any[]): (doneCallback: () => void) => void {
     return function (doneCallback: () => void) {
         dispatch(hsm, signalName, ...payload)
             .then(function (result) {resolve(result);})
@@ -354,7 +402,6 @@ function createSyncTask<UserTopState extends State<UserTopState, UserData>, User
         dispatch(hsm, signalName, ...payload)
             .catch(function (err) {
                 hsm.logError(err);
-                hsm.queue.push(createSyncTask(hsm, 'onError', err));
             })
             .finally(function () {
                 doneCallback();
@@ -370,8 +417,8 @@ function createSendProtocol<UserTopState extends State<UserTopState, UserData>, 
             }
 
             function messageSender<T>(...payload: any[]): Promise<T> {
-                return new Promise<T>(function (resolve: (value: T) => void, reject: (value: Error) => void) {
-                    hsm.queue.push(createAsyncTask(hsm, resolve, reject, signalName, ...payload));
+                return new Promise<T>(function (resolve: (value: T | undefined) => void, reject: (value: Error) => void) {
+                    hsm.pushTask(createAsyncTask(hsm, resolve, reject, signalName, ...payload));
                 });
             }
 
@@ -391,7 +438,7 @@ function createPostProtocol<UserTopState extends State<UserTopState, UserData>, 
 
             function messageSender(...payload: any[]): void {
                 let task: (doneCallback: () => void) => void = createSyncTask(hsm, signalName, ...payload);
-                hsm.queue.push(task);
+                hsm.pushTask(task);
             }
 
             object[signalName] = messageSender;

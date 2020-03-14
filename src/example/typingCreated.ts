@@ -55,8 +55,6 @@ class State2 extends TopState {
 
 class MyData {
     name?: string;
-    surname?: string;
-    millis = 100;
 }
 
 async function Injected() {
