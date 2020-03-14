@@ -1,46 +1,59 @@
-export declare type StateConstructor<UserTopState extends State<UserTopState, UserData>, UserData> = Function & {
-    initialState?: StateConstructor<UserTopState, UserData>;
-    exceptionState?: StateConstructor<UserTopState, UserData>;
+export declare type StateConstructor<UserData, Protocol> = Function & {
+    initialState?: StateConstructor<UserData, Protocol>;
+    exceptionState?: StateConstructor<UserData, Protocol>;
     isInitialState?: boolean;
-    prototype: State<UserTopState, UserData>;
+    prototype: IState<UserData, Protocol>;
 };
-export declare type TopStateConstructor<UserTopState extends State<UserTopState, UserData>, UserData> = Function & {
-    initialState?: StateConstructor<UserTopState, UserData>;
-    exceptionState?: StateConstructor<UserTopState, UserData>;
-    isInitialState?: boolean;
-    prototype: UserTopState;
-};
-export declare type PostProtocol<UserTopState extends State<UserTopState, UserData>, UserData> = {
-    [P in keyof UserTopState]: PostFunction<UserTopState[P]>;
+export declare type PostProtocol<Protocol = undefined> = Protocol extends undefined ? {
+    [key: string]: (...payload: any[]) => void;
+} : {
+    [key in keyof Protocol]: PostFunction<Protocol[key]>;
 };
 export declare type PostFunction<EventHandler> = EventHandler extends (...payload: infer Payload) => infer ReturnedValue ? ReturnedValue extends (void | undefined | null | Promise<any>) ? (...payload: Payload) => void : never : never;
-export declare type SendProtocol<UserTopState extends State<UserTopState, UserData>, UserData> = {
-    [P in keyof UserTopState]: SendFunction<UserTopState[P]>;
+export declare type SendProtocol<Protocol = undefined> = Protocol extends undefined ? {
+    [key: string]: (...payload: any[]) => Promise<any>;
+} : {
+    [key in keyof Protocol]: SendFunction<Protocol[key]>;
 };
 export declare type SendFunction<EventHandler> = EventHandler extends (...payload: infer Payload) => infer ReturnedPromise ? ReturnedPromise extends Promise<infer Value> ? (...payload: Payload) => Promise<Value> : never : never;
-export declare type UserDataType<UserTopState extends State<UserTopState, any>> = UserTopState extends State<UserTopState, infer UserData> ? UserData : never;
-export interface IBaseHsm<UserTopState extends State<UserTopState, UserData>, UserData> {
+export interface IBaseHsm<UserData, Protocol> {
     logLevel: LogLevel;
     name: string;
     readonly typeName: string;
-    readonly currentState: StateConstructor<UserTopState, UserData>;
-    readonly topState: StateConstructor<UserTopState, UserData>;
-    readonly post: PostProtocol<UserTopState, UserData>;
+    readonly currentState: StateConstructor<UserData, Protocol>;
+    readonly topState: StateConstructor<UserData, Protocol>;
+    readonly post: PostProtocol<Protocol>;
 }
-export interface IHsm<UserTopState extends State<UserTopState, UserData>, UserData = UserDataType<UserTopState>> extends IBaseHsm<UserTopState, UserData> {
+export interface IHsm<UserData = {
+    [key: string]: any;
+}, Protocol = {}> extends IBaseHsm<UserData, Protocol> {
     readonly ctx: UserData;
-    readonly send: SendProtocol<UserTopState, UserData>;
+    readonly send: SendProtocol<Protocol>;
 }
-export interface IBoundHsm<UserTopState extends State<UserTopState, UserData>, UserData> extends IBaseHsm<UserTopState, UserData> {
-    transition(nextState: StateConstructor<UserTopState, UserData>): void;
-    unhandled(): never;
-    wait(millis: number): Promise<void>;
+export interface IHsmLogger {
     logTrace(msg?: any, ...optionalParameters: any[]): void;
     logDebug(msg?: any, ...optionalParameters: any[]): void;
     logWarn(msg?: any, ...optionalParameters: any[]): void;
     logInfo(msg?: any, ...optionalParameters: any[]): void;
     logError(msg?: any, ...optionalParameters: any[]): void;
     logFatal(msg?: any, ...optionalParameters: any[]): void;
+}
+export interface IBoundHsm<UserData = {
+    [key: string]: any;
+}, Protocol = {}> extends IBaseHsm<UserData, Protocol>, IHsmLogger {
+    transition(nextState: StateConstructor<UserData, Protocol>): void;
+    unhandled(): never;
+    wait(millis: number): Promise<void>;
+}
+export interface IState<UserData = {
+    [key: string]: any;
+}, Protocol = undefined> {
+    readonly ctx: UserData;
+    readonly hsm: IBoundHsm<UserData, Protocol>;
+    readonly post: PostProtocol<Protocol>;
+    _init(...args: any[]): Promise<void> | void;
+    _exit(): Promise<void> | void;
+    _entry(): Promise<void> | void;
 }
 export declare enum LogLevel {
     ALL = 0,
@@ -52,16 +65,21 @@ export declare enum LogLevel {
     FATAL = 60,
     OFF = 70
 }
-export interface State<UserTopState extends State<UserTopState, UserData>, UserData = {
+export declare class State<UserData = {
     [key: string]: any;
-}> {
+}, Protocol = undefined> {
     readonly ctx: UserData;
-    readonly hsm: IBoundHsm<UserTopState, UserData>;
-    readonly post: PostProtocol<UserTopState, UserData>;
-    _init(...args: any[]): Promise<void> | void;
+    readonly hsm: IBoundHsm<UserData, Protocol>;
+    readonly post: PostProtocol<Protocol>;
+    _init(..._: any[]): Promise<void> | void;
     _exit(): Promise<void> | void;
     _entry(): Promise<void> | void;
 }
-export declare function create<UserTopState extends State<UserTopState, UserData>, UserData>(userData: UserData, topState: TopStateConstructor<UserTopState, UserData>, logLevel?: LogLevel): IHsm<UserTopState, UserData>;
-export declare function init<UserTopState extends State<UserTopState, UserData>, UserData>(topState: TopStateConstructor<UserTopState, UserData>, logLevel?: LogLevel, fieldName?: string): (constructor: new (...args: any[]) => any) => (new (...args: any[]) => any);
-export declare function initialState<UserTopState extends State<UserTopState, UserData>, UserData>(TargetState: StateConstructor<UserTopState, UserData>): void;
+export declare function createObject(topState: StateConstructor<{
+    [key: string]: any;
+}, undefined>, logLevel?: LogLevel): IHsm<{
+    [key: string]: any;
+}, undefined>;
+export declare function create<UserData, Protocol>(topState: StateConstructor<UserData, Protocol>, userData: UserData, logLevel?: LogLevel): IHsm<UserData, Protocol>;
+export declare function init<UserData, Protocol>(topState: StateConstructor<UserData, Protocol>, logLevel?: LogLevel, fieldName?: string): (constructor: new (...args: any[]) => any) => (new (...args: any[]) => any);
+export declare function initialState<UserData, Protocol>(): (TargetState: StateConstructor<UserData, Protocol>) => void;

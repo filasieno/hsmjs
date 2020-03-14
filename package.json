@@ -11,7 +11,7 @@
     "clean": "rm -Rf ./lib; rm -f ./src/index.js; rm -f ./src/index.js.map; rm -f ./src/index.browser.js; rm -f ./.tsc",
     "prebuild-node": "rm -f ./.tsc",
     "prebuild-browser": "rm -f ./.tsc",
-    "build-node": "tsc --build tsconfig.node.json",
+    "build-node": "tsc --build tsconfig.json",
     "build-browser": "tsc --build tsconfig.browser.json",
     "predist-node": "npm run build-node",
     "predist-browser": "npm run build-browser",
@@ -45,9 +45,7 @@
     "url": "https://github.com/filasieno/ihsm/issues"
   },
   "homepage": "https://github.com/filasieno/ihsm#readme",
-  "dependencies": {
-    "queue": "^6.0.1"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/chai": "^4.2.10",
     "@types/eslint": "~6.1.8",
