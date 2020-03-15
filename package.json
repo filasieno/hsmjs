@@ -1,6 +1,6 @@
 {
   "name": "ihsm",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "description": "An idiomatic hierarchical state machine",
   "main": "./lib/index.js",
   "browser": "./lib/index.browser.js",
@@ -19,7 +19,7 @@
     "dist-browser": "mkdir -p ./lib && cp ./src/index.js ./lib/index.browser.js && cp ./src/index.d.ts ./lib/index.d.ts",
     "predist": "npm run clean",
     "dist": "npm run dist-node && npm run dist-browser",
-    "doc": "typedoc ./src"
+    "doc": "typedoc ./src/index.ts"
   },
   "eslintConfig": {
     "env": {

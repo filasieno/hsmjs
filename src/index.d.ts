@@ -1,10 +1,10 @@
-declare type SignalOf<Protocol extends {
+export declare type EventHandlerSignal<Protocol extends {
     [key: string]: any;
 } | undefined, Signal extends keyof Protocol> = Protocol extends undefined ? string : Signal;
-declare type PayloadOf<Protocol extends {
+export declare type EventHandlerPayload<Protocol extends {
     [key: string]: any;
 } | undefined, Signal extends keyof Protocol> = Protocol extends undefined ? any[] : Protocol[Signal] extends (...payload: infer Payload) => any ? Payload : never;
-declare type ReturnValueOf<Protocol extends {
+export declare type EventHandlerReturnType<Protocol extends {
     [key: string]: any;
 } | undefined, Signal extends keyof Protocol> = Protocol extends undefined ? any : Protocol[Signal] extends (...payload: any[]) => infer ReturnType ? ReturnType extends Promise<infer Value> ? Value : ReturnType : never;
 export declare type StateConstructor<UserData, Protocol extends {
@@ -23,7 +23,7 @@ export interface IBaseHsm<UserData, Protocol extends {
     readonly typeName: string;
     readonly currentState: StateConstructor<UserData, Protocol>;
     readonly topState: StateConstructor<UserData, Protocol>;
-    post<Signal extends keyof Protocol>(signal: SignalOf<Protocol, Signal>, ...payload: PayloadOf<Protocol, Signal>): void;
+    post<Signal extends keyof Protocol>(signal: EventHandlerSignal<Protocol, Signal>, ...payload: EventHandlerPayload<Protocol, Signal>): void;
 }
 export interface IHsm<UserData = {
     [key: string]: any;
@@ -31,7 +31,7 @@ export interface IHsm<UserData = {
     [key: string]: any;
 } | undefined = undefined> extends IBaseHsm<UserData, Protocol> {
     readonly ctx: UserData;
-    send<Signal extends keyof Protocol>(signal: SignalOf<Protocol, Signal>, ...payload: PayloadOf<Protocol, Signal>): Promise<ReturnValueOf<Protocol, Signal>>;
+    send<Signal extends keyof Protocol>(signal: EventHandlerSignal<Protocol, Signal>, ...payload: EventHandlerPayload<Protocol, Signal>): Promise<EventHandlerReturnType<Protocol, Signal>>;
 }
 export interface IHsmDebug {
     logTrace(msg?: any, ...optionalParameters: any[]): void;
@@ -102,4 +102,3 @@ export declare function createObject(topState: StateConstructor<{
 export declare function create<UserData, Protocol>(topState: StateConstructor<UserData, Protocol>, userData: UserData, logLevel?: LogLevel): IHsm<UserData, Protocol>;
 export declare function init<UserData, Protocol>(topState: StateConstructor<UserData, Protocol>, logLevel?: LogLevel, fieldName?: string): (constructor: new (...args: any[]) => any) => (new (...args: any[]) => any);
 export declare function initialState<UserData, Protocol>(): (state: StateConstructor<UserData, Protocol>) => void;
-export {};

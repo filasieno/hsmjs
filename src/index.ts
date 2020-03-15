@@ -10,9 +10,9 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-type SignalOf<Protocol extends { [key: string]: any} | undefined, Signal extends keyof Protocol> = Protocol extends undefined ? string : Signal;
-type PayloadOf<Protocol extends { [key: string]: any} | undefined, Signal extends keyof Protocol> = Protocol extends undefined ? any[] : Protocol[Signal] extends (...payload: infer Payload) => any ? Payload : never;
-type ReturnValueOf<Protocol extends { [key: string]: any} | undefined, Signal extends keyof Protocol> = Protocol extends undefined ? any
+export type EventHandlerSignal<Protocol extends { [key: string]: any} | undefined, Signal extends keyof Protocol> = Protocol extends undefined ? string : Signal;
+export type EventHandlerPayload<Protocol extends { [key: string]: any} | undefined, Signal extends keyof Protocol> = Protocol extends undefined ? any[] : Protocol[Signal] extends (...payload: infer Payload) => any ? Payload : never;
+export type EventHandlerReturnType<Protocol extends { [key: string]: any} | undefined, Signal extends keyof Protocol> = Protocol extends undefined ? any
     : Protocol[Signal] extends (...payload: any[]) => infer ReturnType ? ReturnType extends Promise<infer Value> ? Value
         : ReturnType : never;
 
@@ -37,7 +37,7 @@ export interface IBaseHsm<UserData, Protocol extends { [key: string]: any} | und
     readonly typeName: string;
     readonly currentState: StateConstructor<UserData, Protocol>;
     readonly topState: StateConstructor<UserData, Protocol>;
-    post<Signal extends keyof Protocol>(signal: SignalOf<Protocol, Signal>, ...payload:PayloadOf<Protocol, Signal>): void;
+    post<Signal extends keyof Protocol>(signal: EventHandlerSignal<Protocol, Signal>, ...payload:EventHandlerPayload<Protocol, Signal>): void;
 }
 
 /**
@@ -49,7 +49,7 @@ export interface IHsm<UserData = { [key: string]: any }, Protocol extends { [key
      */
     readonly ctx: UserData;
 
-    send<Signal extends keyof Protocol>(signal: SignalOf<Protocol, Signal>, ...payload:PayloadOf<Protocol, Signal>): Promise<ReturnValueOf<Protocol, Signal>>;
+    send<Signal extends keyof Protocol>(signal: EventHandlerSignal<Protocol, Signal>, ...payload:EventHandlerPayload<Protocol, Signal>): Promise<EventHandlerReturnType<Protocol, Signal>>;
 }
 
 // TODO: Replace with Hooks ???
@@ -246,13 +246,16 @@ export function initialState<UserData, Protocol>(): (state: StateConstructor<Use
 // Private Types
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+/** @internal */
 type Task = (done: () => void) => void;
 
+/** @internal */
 interface IPrivateHsm<UserData, Protocol> extends IHsmDebug {
     indent: number;
     currentState: StateConstructor<UserData, Protocol>;
 }
 
+/** @internal */
 interface ITransition<UserData, Protocol> {
     execute(hsm: IPrivateHsm<UserData, Protocol>): Promise<void>;
 }
@@ -261,7 +264,7 @@ interface ITransition<UserData, Protocol> {
 // Private Values
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
+/** @internal */
 class DebugTransition<UserData, Protocol> implements ITransition<UserData, Protocol> {
 
     readonly exitList: Array<StateConstructor<UserData, Protocol>>;
@@ -309,7 +312,7 @@ class DebugTransition<UserData, Protocol> implements ITransition<UserData, Proto
     }
 }
 
-
+/** @internal */
 class Hsm<UserData, Protocol extends {[key: string]: any} | undefined> implements IBoundHsm<UserData, Protocol>, IHsm<UserData, Protocol>, IPrivateHsm<UserData, Protocol> {
     hsm: IBoundHsm<UserData, Protocol>;
     ctx: UserData;
@@ -340,13 +343,13 @@ class Hsm<UserData, Protocol extends {[key: string]: any} | undefined> implement
         this.indent = 0;
     }
 
-    post<Signal extends keyof Protocol>(signal: SignalOf<Protocol, Signal>, ...payload:PayloadOf<Protocol, Signal>): void {
+    post<Signal extends keyof Protocol>(signal: EventHandlerSignal<Protocol, Signal>, ...payload:EventHandlerPayload<Protocol, Signal>): void {
         this.pushTask(createSyncTask(this, signal, ...payload));
     }
 
-    send<Signal extends keyof Protocol>(signal: SignalOf<Protocol, Signal>, ...payload:PayloadOf<Protocol, Signal>): Promise<ReturnValueOf<Protocol, Signal>> {
+    send<Signal extends keyof Protocol>(signal: EventHandlerSignal<Protocol, Signal>, ...payload:EventHandlerPayload<Protocol, Signal>): Promise<EventHandlerReturnType<Protocol, Signal>> {
         let self = this;
-        return new Promise<ReturnValueOf<Protocol, Signal>>(function (resolve: (value: ReturnValueOf<Protocol, Signal> | undefined) => void, reject: (value: Error) => void) {
+        return new Promise<EventHandlerReturnType<Protocol, Signal>>(function (resolve: (value: EventHandlerReturnType<Protocol, Signal> | undefined) => void, reject: (value: Error) => void) {
             self.pushTask(createAsyncTask(self, resolve, reject, signal, ...payload));
         });
     }
@@ -463,6 +466,7 @@ class Hsm<UserData, Protocol extends {[key: string]: any} | undefined> implement
     }
 }
 
+/** @internal */
 function getDebugTransition<UserData, Protocol>(srcState: StateConstructor<UserData, Protocol>, destState: StateConstructor<UserData, Protocol>, topState: StateConstructor<UserData, Protocol>): ITransition<UserData, Protocol> {
     let src: StateConstructor<UserData, Protocol> = srcState;
     let dst: StateConstructor<UserData, Protocol> = destState;
@@ -499,7 +503,8 @@ function getDebugTransition<UserData, Protocol>(srcState: StateConstructor<UserD
     return new DebugTransition<UserData, Protocol>(srcPath, dstPath);
 }
 
-async function debugDispatch<UserData, Protocol extends {[Signal: string]:any} | undefined, Signal extends keyof Protocol>(hsm: Hsm<UserData, Protocol>, signal: SignalOf<Protocol, Signal>, ...payload: any[]): Promise<any> {
+/** @internal */
+async function debugDispatch<UserData, Protocol extends {[Signal: string]:any} | undefined, Signal extends keyof Protocol>(hsm: Hsm<UserData, Protocol>, signal: EventHandlerSignal<Protocol, Signal>, ...payload: any[]): Promise<any> {
     hsm.logTrace(`[${hsm.currentState.name}] #${signal}`);
     ++hsm.indent;
     try {
@@ -551,6 +556,7 @@ async function debugDispatch<UserData, Protocol extends {[Signal: string]:any} |
     }
 }
 
+/** @internal */
 function createAsyncTask<
     UserData,
     ReturnType,
@@ -560,7 +566,7 @@ function createAsyncTask<
     hsm: Hsm<UserData, Protocol>,
     resolve: (value: ReturnType | undefined) => void,
     reject: (value: Error) => void,
-    signal: SignalOf<Protocol, Signal>,
+    signal: EventHandlerSignal<Protocol, Signal>,
     ...payload: any[]
 ): (doneCallback: () => void) => void {
     return function (doneCallback: () => void) {
@@ -573,6 +579,7 @@ function createAsyncTask<
     };
 }
 
+/** @internal */
 function createSyncTask<
     UserData,
     Protocol extends {[Signal: string]: any} | undefined,
@@ -580,7 +587,7 @@ function createSyncTask<
     Signal extends keyof Protocol
 >(
     hsm: Hsm<UserData, Protocol>,
-    signal: SignalOf<Protocol, Signal>,
+    signal: EventHandlerSignal<Protocol, Signal>,
     ...payload: any[]
 ): (doneCallback: () => void) => void {
     return function (doneCallback: () => void): void {

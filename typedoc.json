@@ -1,6 +1,8 @@
 {
     "mode": "file",
-    "out": "dist/doc/api",
-    "tsconfig": "tsconfig-base.json"
+    "out": "lib/doc/api",
+    "tsconfig": "tsconfig.json",
+    "excludePrivate": true,
+    "stripInternal": true
 }
 
