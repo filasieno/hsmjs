@@ -13,27 +13,53 @@ export type StateConstructor<UserData, Protocol> = Function & {
     initialState?: StateConstructor<UserData, Protocol>; exceptionState?: StateConstructor<UserData, Protocol>; isInitialState?: boolean; prototype: IState<UserData, Protocol>;
 };
 
-export type PostProtocol<Protocol = undefined> = Protocol extends undefined ? { [key: string]: (...payload: any[]) => void } : { [key in keyof Protocol]: PostFunction<Protocol[key]> };
-export type PostFunction<EventHandler> = EventHandler extends (...payload: infer Payload) => infer ReturnedValue ? ReturnedValue extends (void | undefined | null | Promise<any>) ? (...payload: Payload) => void : never : never;
+// Conditional Types: Type extends TestType ? TT : FT;
+export type PostProtocol<Protocol = undefined> =
+    Protocol extends undefined ? { [key: string ]: (...payload: any[]) => void } :
+        Protocol extends { [key: string ]: any } ? { [key in keyof Protocol]: PostFunction<Protocol[key]> } :
+            never;
 
-export type SendProtocol<Protocol = undefined> = Protocol extends undefined ? { [key: string]: (...payload: any[]) => Promise<any> } : { [key in keyof Protocol]: SendFunction<Protocol[key]>; };
-export type SendFunction<EventHandler> = EventHandler extends (...payload: infer Payload) => infer ReturnedPromise ? ReturnedPromise extends Promise<infer Value> ? (...payload: Payload) => Promise<Value> : never : never;
+export type PostFunction<EventHandler> =
+    EventHandler extends (...payload: infer Payload) => infer ReturnedValue ?
+        ReturnedValue extends (void | undefined | null | Promise<void | undefined | null>) ?
+            (...payload: Payload) => void : never : never;
+
+export type SendProtocol<Protocol = undefined> =
+    Protocol extends undefined ? { [key: string]: (...payload: any[]) => Promise<any> } :
+        Protocol extends { [key: string]: any } ? { [key in keyof Protocol]: SendFunction<Protocol[key]> } : never;
+
+export type SendFunction<EventHandler> =
+    EventHandler extends (...payload: infer Payload) => infer ReturnedValue ?
+        ReturnedValue extends Promise<infer Value> ? (...payload: Payload) => Promise<Value> :
+            (...payload: Payload) => Promise<ReturnedValue> : never;
 
 export interface IBaseHsm<UserData, Protocol> {
     logLevel: LogLevel;
-    name: string;
+    readonly name: string;
     readonly typeName: string;
     readonly currentState: StateConstructor<UserData, Protocol>;
     readonly topState: StateConstructor<UserData, Protocol>;
     readonly post: PostProtocol<Protocol>;
 }
 
-export interface IHsm<UserData = { [key: string]: any }, Protocol = {}> extends IBaseHsm<UserData, Protocol> {
+export interface IHsm<UserData = { [key: string]: any }, Protocol = undefined> extends IBaseHsm<UserData, Protocol> {
     readonly ctx: UserData;
     readonly send: SendProtocol<Protocol>;
 }
 
+// TODO: Replace with Hooks ???
 export interface IHsmLogger {
+    // preTransition(ctx, from:State, to:State): void
+    // postTransition(ctx, from:State, to:State): void
+    // preInit(ctx, args, State): void
+    // postInit(ctx, args, State): void
+    // preStateEntry(ctx, State): void
+    // postStateEntry(ctx, State): void
+    // preStateExit(ctx, State): void
+    // postStateExit(ctx, State): void
+    // preDispatch(ctx, args): void
+    // postDispatch(ctx, args, result, error): void
+
     logTrace(msg?: any, ...optionalParameters: any[]): void;
     logDebug(msg?: any, ...optionalParameters: any[]): void;
     logWarn(msg?: any, ...optionalParameters: any[]): void;
@@ -42,7 +68,8 @@ export interface IHsmLogger {
     logFatal(msg?: any, ...optionalParameters: any[]): void;
 }
 
-export interface IBoundHsm<UserData = { [key: string]: any }, Protocol = {}> extends IBaseHsm<UserData, Protocol>, IHsmLogger {
+export interface IBoundHsm<UserData, Protocol> extends IBaseHsm<UserData, Protocol>, IHsmLogger {
+    readonly post: PostProtocol<Protocol>;
     transition(nextState: StateConstructor<UserData, Protocol>): void;
     unhandled(): never;
     wait(millis: number): Promise<void>;
@@ -51,12 +78,10 @@ export interface IBoundHsm<UserData = { [key: string]: any }, Protocol = {}> ext
 export interface IState<UserData = { [key: string]: any }, Protocol = undefined> {
     readonly ctx: UserData;
     readonly hsm: IBoundHsm<UserData, Protocol>;
-    readonly post: PostProtocol<Protocol>;
     _init(...args: any[]): Promise<void> | void;
     _exit(): Promise<void> | void;
     _entry(): Promise<void> | void;
 }
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Exported Values
@@ -64,7 +89,7 @@ export interface IState<UserData = { [key: string]: any }, Protocol = undefined>
 
 export enum LogLevel { ALL = 0, TRACE = 20, DEBUG = 30, INFO = 30, WARN = 40, ERROR = 50, FATAL = 60, OFF = 70 }
 
-export class State<UserData = { [key: string]: any }, Protocol = undefined> {
+export class State<UserData = { [key: string]: any }, Protocol = undefined> implements IState<UserData, Protocol> {
     readonly ctx!: UserData;
     readonly hsm!: IBoundHsm<UserData, Protocol>;
     readonly post!: PostProtocol<Protocol>;
@@ -169,7 +194,6 @@ interface ITransition<UserData, Protocol> {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Private Values
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 
 
 class DebugTransition<UserData, Protocol> implements ITransition<UserData, Protocol> {
@@ -353,7 +377,7 @@ class Hsm<UserData, Protocol> implements IStateThisBinding<UserData, Protocol>, 
 
     private exec(task: Task) {
         let self = this;
-        queueMicrotask(function (): void {
+        setTimeout(function (): void {
             Promise
                 .resolve()
                 .then(function () {
@@ -362,7 +386,7 @@ class Hsm<UserData, Protocol> implements IStateThisBinding<UserData, Protocol>, 
                 .then(function () {
                     self.dequeue()
                 });
-        });
+        }, 0);
     }
 }
 
@@ -429,7 +453,7 @@ async function debugDispatch<UserData, Protocol>(hsm: Hsm<UserData, Protocol>, s
         if (hsm.nextState != null) {
             const destState = hsm.nextState;
             // Begin Transition
-             hsm.logTrace(`transition [${hsm.currentState.name}] => [${destState.name}]`);
+            hsm.logTrace(`transition [${hsm.currentState.name}] => [${destState.name}]`);
 
             let tr: ITransition<UserData, Protocol> | undefined = hsm.transitionCache.get([hsm.currentState, destState]);
             if (!tr) {

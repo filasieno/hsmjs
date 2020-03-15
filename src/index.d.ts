@@ -6,19 +6,23 @@ export declare type StateConstructor<UserData, Protocol> = Function & {
 };
 export declare type PostProtocol<Protocol = undefined> = Protocol extends undefined ? {
     [key: string]: (...payload: any[]) => void;
-} : {
+} : Protocol extends {
+    [key: string]: any;
+} ? {
     [key in keyof Protocol]: PostFunction<Protocol[key]>;
-};
-export declare type PostFunction<EventHandler> = EventHandler extends (...payload: infer Payload) => infer ReturnedValue ? ReturnedValue extends (void | undefined | null | Promise<any>) ? (...payload: Payload) => void : never : never;
+} : never;
+export declare type PostFunction<EventHandler> = EventHandler extends (...payload: infer Payload) => infer ReturnedValue ? ReturnedValue extends (void | undefined | null | Promise<void | undefined | null>) ? (...payload: Payload) => void : never : never;
 export declare type SendProtocol<Protocol = undefined> = Protocol extends undefined ? {
     [key: string]: (...payload: any[]) => Promise<any>;
-} : {
+} : Protocol extends {
+    [key: string]: any;
+} ? {
     [key in keyof Protocol]: SendFunction<Protocol[key]>;
-};
-export declare type SendFunction<EventHandler> = EventHandler extends (...payload: infer Payload) => infer ReturnedPromise ? ReturnedPromise extends Promise<infer Value> ? (...payload: Payload) => Promise<Value> : never : never;
+} : never;
+export declare type SendFunction<EventHandler> = EventHandler extends (...payload: infer Payload) => infer ReturnedValue ? ReturnedValue extends Promise<infer Value> ? (...payload: Payload) => Promise<Value> : (...payload: Payload) => Promise<ReturnedValue> : never;
 export interface IBaseHsm<UserData, Protocol> {
     logLevel: LogLevel;
-    name: string;
+    readonly name: string;
     readonly typeName: string;
     readonly currentState: StateConstructor<UserData, Protocol>;
     readonly topState: StateConstructor<UserData, Protocol>;
@@ -26,7 +30,7 @@ export interface IBaseHsm<UserData, Protocol> {
 }
 export interface IHsm<UserData = {
     [key: string]: any;
-}, Protocol = {}> extends IBaseHsm<UserData, Protocol> {
+}, Protocol = undefined> extends IBaseHsm<UserData, Protocol> {
     readonly ctx: UserData;
     readonly send: SendProtocol<Protocol>;
 }
@@ -38,9 +42,8 @@ export interface IHsmLogger {
     logError(msg?: any, ...optionalParameters: any[]): void;
     logFatal(msg?: any, ...optionalParameters: any[]): void;
 }
-export interface IBoundHsm<UserData = {
-    [key: string]: any;
-}, Protocol = {}> extends IBaseHsm<UserData, Protocol>, IHsmLogger {
+export interface IBoundHsm<UserData, Protocol> extends IBaseHsm<UserData, Protocol>, IHsmLogger {
+    readonly post: PostProtocol<Protocol>;
     transition(nextState: StateConstructor<UserData, Protocol>): void;
     unhandled(): never;
     wait(millis: number): Promise<void>;
@@ -50,7 +53,6 @@ export interface IState<UserData = {
 }, Protocol = undefined> {
     readonly ctx: UserData;
     readonly hsm: IBoundHsm<UserData, Protocol>;
-    readonly post: PostProtocol<Protocol>;
     _init(...args: any[]): Promise<void> | void;
     _exit(): Promise<void> | void;
     _entry(): Promise<void> | void;
@@ -67,7 +69,7 @@ export declare enum LogLevel {
 }
 export declare class State<UserData = {
     [key: string]: any;
-}, Protocol = undefined> {
+}, Protocol = undefined> implements IState<UserData, Protocol> {
     readonly ctx: UserData;
     readonly hsm: IBoundHsm<UserData, Protocol>;
     readonly post: PostProtocol<Protocol>;

@@ -5,9 +5,10 @@ interface Protocol {
     switchAndLog(preMessage: string, postMessage: string): Promise<void>;
     setAndGet(msg: string): Promise<string>;
     hello(msg: string): Promise<void>;
+    newHello(msg: string): string;
 }
 
-abstract class TopState extends ihsm.State<MyData, Protocol> implements Protocol {
+abstract class TopState extends ihsm.State<MyData, Protocol> implements Protocol{
 
     async hello(msg: string) {
         await this.hsm.wait(1000);
@@ -22,6 +23,11 @@ abstract class TopState extends ihsm.State<MyData, Protocol> implements Protocol
     async switchAndLog(preMessage: string, postMessage: string) {
         this.hsm.logInfo(`${preMessage} & ${postMessage}`);
         this.hsm.transition(State2);
+    }
+
+    newHello(msg: string): string {
+        console.log(msg);
+        return msg;
     }
 
 }
@@ -53,6 +59,7 @@ async function Injected() {
     hsm.post.switchAndLog('pre', 'post');
     await hsm.send.switchAndLog('pre', 'post');
     await hsm.send.setAndGet('x');
+    let val: string = await hsm.send.newHello('x');
     let x = await hsm.send.setAndGet('name');
     hsm.post.hello('x');
 }
