@@ -33,7 +33,7 @@ export interface IHsm<UserData = {
     readonly ctx: UserData;
     send<Signal extends keyof Protocol>(signal: SignalOf<Protocol, Signal>, ...payload: PayloadOf<Protocol, Signal>): Promise<ReturnValueOf<Protocol, Signal>>;
 }
-export interface IHsmHooks {
+export interface IHsmDebug {
     logTrace(msg?: any, ...optionalParameters: any[]): void;
     logDebug(msg?: any, ...optionalParameters: any[]): void;
     logWarn(msg?: any, ...optionalParameters: any[]): void;
@@ -41,9 +41,23 @@ export interface IHsmHooks {
     logError(msg?: any, ...optionalParameters: any[]): void;
     logFatal(msg?: any, ...optionalParameters: any[]): void;
 }
+export interface IHsmHooks<UserData, Protocol extends {
+    [key: string]: any;
+} | undefined> {
+    preTransition(ctx: UserData, from: StateConstructor<UserData, Protocol>, to: StateConstructor<UserData, Protocol>): void;
+    postTransition(ctx: UserData, from: StateConstructor<UserData, Protocol>, to: StateConstructor<UserData, Protocol>): void;
+    preInit(ctx: UserData, args: any[], state: StateConstructor<UserData, Protocol>): void;
+    postInit(ctx: UserData, args: any[], state: StateConstructor<UserData, Protocol>): void;
+    preStateEntry(ctx: UserData, state: StateConstructor<UserData, Protocol>): void;
+    postStateEntry(ctx: UserData, state: StateConstructor<UserData, Protocol>): void;
+    preStateExit(ctx: UserData, state: StateConstructor<UserData, Protocol>): void;
+    postStateExit(ctx: UserData, state: StateConstructor<UserData, Protocol>): void;
+    preDispatch(ctx: UserData, state: StateConstructor<UserData, Protocol>): void;
+    postDispatch(ctx: UserData, state: StateConstructor<UserData, Protocol>, result?: any, error?: Error): void;
+}
 export interface IBoundHsm<UserData, Protocol extends {
     [key: string]: any;
-} | undefined> extends IBaseHsm<UserData, Protocol>, IHsmHooks {
+} | undefined> extends IBaseHsm<UserData, Protocol>, IHsmDebug {
     transition(nextState: StateConstructor<UserData, Protocol>): void;
     unhandled(): never;
     wait(millis: number): Promise<void>;

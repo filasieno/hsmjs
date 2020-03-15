@@ -53,7 +53,7 @@ export interface IHsm<UserData = { [key: string]: any }, Protocol extends { [key
 }
 
 // TODO: Replace with Hooks ???
-export interface IHsmHooks {
+export interface IHsmDebug {
     // preTransition(ctx, from:State, to:State): void
     // postTransition(ctx, from:State, to:State): void
     // preInit(ctx, args, State): void
@@ -74,9 +74,25 @@ export interface IHsmHooks {
 }
 
 /**
- * IBoundHSM
+ * IHsmHooks: ...
  */
-export interface IBoundHsm<UserData, Protocol extends { [key: string]: any} | undefined> extends IBaseHsm<UserData, Protocol>, IHsmHooks {
+export interface IHsmHooks<UserData, Protocol extends { [key: string]: any} | undefined> {
+    preTransition(ctx: UserData, from: StateConstructor<UserData, Protocol>, to: StateConstructor<UserData, Protocol>): void;
+    postTransition(ctx: UserData, from: StateConstructor<UserData, Protocol>, to:StateConstructor<UserData, Protocol>): void;
+    preInit(ctx: UserData, args: any[], state: StateConstructor<UserData, Protocol>): void;
+    postInit(ctx: UserData, args: any[], state: StateConstructor<UserData, Protocol>): void;
+    preStateEntry(ctx: UserData, state: StateConstructor<UserData, Protocol>): void;
+    postStateEntry(ctx: UserData, state: StateConstructor<UserData, Protocol>): void;
+    preStateExit(ctx: UserData, state: StateConstructor<UserData, Protocol>): void;
+    postStateExit(ctx: UserData, state: StateConstructor<UserData, Protocol>): void;
+    preDispatch(ctx: UserData, state: StateConstructor<UserData, Protocol>): void;
+    postDispatch(ctx: UserData, state: StateConstructor<UserData, Protocol>, result?: any, error?: Error): void;
+}
+
+/**
+ * IBoundHsm: ...
+ */
+export interface IBoundHsm<UserData, Protocol extends { [key: string]: any} | undefined> extends IBaseHsm<UserData, Protocol>, IHsmDebug {
 
     /**
      * transition
@@ -112,6 +128,7 @@ export interface IState<UserData = { [key: string]: any }, Protocol extends { [k
     readonly hsm: IBoundHsm<UserData, Protocol>;
     /**
      * init
+     * @param {any[]} args
      */
     _init(...args: any[]): Promise<void> | void;
     /**
@@ -130,6 +147,9 @@ export interface IState<UserData = { [key: string]: any }, Protocol extends { [k
 
 export enum LogLevel { ALL = 0, TRACE = 20, DEBUG = 30, INFO = 30, WARN = 40, ERROR = 50, FATAL = 60, OFF = 70 }
 
+/**
+ * State
+ */
 export class State<UserData = { [key: string]: any }, Protocol extends { [key: string]: any} | undefined = undefined> implements IState<UserData, Protocol> {
     readonly ctx!: UserData;
     readonly hsm!: IBoundHsm<UserData, Protocol>;
@@ -228,7 +248,7 @@ export function initialState<UserData, Protocol>(): (state: StateConstructor<Use
 
 type Task = (done: () => void) => void;
 
-interface IPrivateHsm<UserData, Protocol> extends IHsmHooks {
+interface IPrivateHsm<UserData, Protocol> extends IHsmDebug {
     indent: number;
     currentState: StateConstructor<UserData, Protocol>;
 }
