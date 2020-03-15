@@ -9,46 +9,51 @@
 // Exported Types
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-export type StateConstructor<UserData, Protocol> = Function & {
-    initialState?: StateConstructor<UserData, Protocol>; exceptionState?: StateConstructor<UserData, Protocol>; isInitialState?: boolean; prototype: IState<UserData, Protocol>;
+
+type SignalOf<Protocol extends { [key: string]: any} | undefined, Signal extends keyof Protocol> = Protocol extends undefined ? string : Signal;
+type PayloadOf<Protocol extends { [key: string]: any} | undefined, Signal extends keyof Protocol> = Protocol extends undefined ? any[] : Protocol[Signal] extends (...payload: infer Payload) => any ? Payload : never;
+type ReturnValueOf<Protocol extends { [key: string]: any} | undefined, Signal extends keyof Protocol> = Protocol extends undefined ? any
+    : Protocol[Signal] extends (...payload: any[]) => infer ReturnType ? ReturnType extends Promise<infer Value> ? Value
+        : ReturnType : never;
+
+/**
+ * StateConstructor
+ */
+export type StateConstructor<UserData, Protocol extends { [key: string]: any} | undefined> = Function & {
+    initialState?: StateConstructor<UserData, Protocol>;
+    exceptionState?: StateConstructor<UserData, Protocol>;
+    isInitialState?: boolean;
+    prototype: IState<UserData, Protocol>;
 };
 
 // Conditional Types: Type extends TestType ? TT : FT;
-export type PostProtocol<Protocol = undefined> =
-    Protocol extends undefined ? { [key: string ]: (...payload: any[]) => void } :
-        Protocol extends { [key: string ]: any } ? { [key in keyof Protocol]: PostFunction<Protocol[key]> } :
-            never;
 
-export type PostFunction<EventHandler> =
-    EventHandler extends (...payload: infer Payload) => infer ReturnedValue ?
-        ReturnedValue extends (void | undefined | null | Promise<void | undefined | null>) ?
-            (...payload: Payload) => void : never : never;
-
-export type SendProtocol<Protocol = undefined> =
-    Protocol extends undefined ? { [key: string]: (...payload: any[]) => Promise<any> } :
-        Protocol extends { [key: string]: any } ? { [key in keyof Protocol]: SendFunction<Protocol[key]> } : never;
-
-export type SendFunction<EventHandler> =
-    EventHandler extends (...payload: infer Payload) => infer ReturnedValue ?
-        ReturnedValue extends Promise<infer Value> ? (...payload: Payload) => Promise<Value> :
-            (...payload: Payload) => Promise<ReturnedValue> : never;
-
-export interface IBaseHsm<UserData, Protocol> {
+/**
+ * Base Hsm
+ */
+export interface IBaseHsm<UserData, Protocol extends { [key: string]: any} | undefined> {
     logLevel: LogLevel;
     readonly name: string;
     readonly typeName: string;
     readonly currentState: StateConstructor<UserData, Protocol>;
     readonly topState: StateConstructor<UserData, Protocol>;
-    readonly post: PostProtocol<Protocol>;
+    post<Signal extends keyof Protocol>(signal: SignalOf<Protocol, Signal>, ...payload:PayloadOf<Protocol, Signal>): void;
 }
 
-export interface IHsm<UserData = { [key: string]: any }, Protocol = undefined> extends IBaseHsm<UserData, Protocol> {
+/**
+ * IHsm
+ */
+export interface IHsm<UserData = { [key: string]: any }, Protocol extends { [key: string]: any} | undefined = undefined> extends IBaseHsm<UserData, Protocol> {
+    /**
+     * ctx
+     */
     readonly ctx: UserData;
-    readonly send: SendProtocol<Protocol>;
+
+    send<Signal extends keyof Protocol>(signal: SignalOf<Protocol, Signal>, ...payload:PayloadOf<Protocol, Signal>): Promise<ReturnValueOf<Protocol, Signal>>;
 }
 
 // TODO: Replace with Hooks ???
-export interface IHsmLogger {
+export interface IHsmHooks {
     // preTransition(ctx, from:State, to:State): void
     // postTransition(ctx, from:State, to:State): void
     // preInit(ctx, args, State): void
@@ -68,18 +73,54 @@ export interface IHsmLogger {
     logFatal(msg?: any, ...optionalParameters: any[]): void;
 }
 
-export interface IBoundHsm<UserData, Protocol> extends IBaseHsm<UserData, Protocol>, IHsmLogger {
-    readonly post: PostProtocol<Protocol>;
+/**
+ * IBoundHSM
+ */
+export interface IBoundHsm<UserData, Protocol extends { [key: string]: any} | undefined> extends IBaseHsm<UserData, Protocol>, IHsmHooks {
+
+    /**
+     * transition
+     * @param {StateConstructor<UserData, Protocol>} nextState
+     */
     transition(nextState: StateConstructor<UserData, Protocol>): void;
+
+    /**
+     *
+     * @returns {never}
+     */
     unhandled(): never;
+
+    /**
+     * wait ...
+     * @param {number} millis
+     * @returns {Promise<void>}
+     */
     wait(millis: number): Promise<void>;
 }
 
-export interface IState<UserData = { [key: string]: any }, Protocol = undefined> {
+/**
+ * IState
+ */
+export interface IState<UserData = { [key: string]: any }, Protocol extends { [key: string]: any} | undefined = undefined> {
+    /**
+     * user data
+     */
     readonly ctx: UserData;
+    /**
+     * user data
+     */
     readonly hsm: IBoundHsm<UserData, Protocol>;
+    /**
+     * init
+     */
     _init(...args: any[]): Promise<void> | void;
+    /**
+     * exit
+     */
     _exit(): Promise<void> | void;
+    /**
+     * entry
+     */
     _entry(): Promise<void> | void;
 }
 
@@ -89,10 +130,9 @@ export interface IState<UserData = { [key: string]: any }, Protocol = undefined>
 
 export enum LogLevel { ALL = 0, TRACE = 20, DEBUG = 30, INFO = 30, WARN = 40, ERROR = 50, FATAL = 60, OFF = 70 }
 
-export class State<UserData = { [key: string]: any }, Protocol = undefined> implements IState<UserData, Protocol> {
+export class State<UserData = { [key: string]: any }, Protocol extends { [key: string]: any} | undefined = undefined> implements IState<UserData, Protocol> {
     readonly ctx!: UserData;
     readonly hsm!: IBoundHsm<UserData, Protocol>;
-    readonly post!: PostProtocol<Protocol>;
     _init(..._: any[]): Promise<void> | void {}
     _exit(): Promise<void> | void {}
     _entry(): Promise<void> | void {}
@@ -105,15 +145,16 @@ export function createObject(topState: StateConstructor<{ [key: string]: any }, 
 export function create<UserData, Protocol>(topState: StateConstructor<UserData, Protocol>, userData: UserData, logLevel: LogLevel = LogLevel.INFO): IHsm<UserData, Protocol> {
     let hsm = new Hsm(topState, userData, logLevel);
     let currState: StateConstructor<UserData, Protocol> = topState;
+    hsm.logTrace(`[${currState.name}] #_init`);
     while (true) {
         if (Object.prototype.hasOwnProperty.call(currState.prototype, '_init')) {
             currState.prototype['_init'].call(hsm, userData);
-            hsm.logTrace(`${currState.name} init done`);
+            hsm.logTrace(`    [${currState.name}] init`);
         } else {
-            hsm.logTrace(`${currState.name} init [unimplemented]`);
+            hsm.logTrace(`    [${currState.name}] init?`);
         }
         if (Object.prototype.hasOwnProperty.call(currState, 'initialState') && currState.initialState) {
-            hsm.logTrace(`${currState.name} initialState found on state '${currState.name}'`);
+            hsm.logTrace(`    [${currState.name}] initialState found in '${currState.name}'`);
             currState = currState.initialState;
             hsm.currentState = currState!;
         } else {
@@ -123,6 +164,13 @@ export function create<UserData, Protocol>(topState: StateConstructor<UserData, 
     return hsm;
 }
 
+/**
+ *
+ * @param {StateConstructor<UserData, Protocol>} topState
+ * @param {LogLevel} logLevel
+ * @param {string} fieldName
+ * @returns {(constructor: {new(...args: any[]): any}) => {new(...args: any[]): any}}
+ */
 export function init<UserData, Protocol>(topState: StateConstructor<UserData, Protocol>, logLevel: LogLevel = LogLevel.INFO, fieldName = 'hsm'): (constructor: new (...args: any[]) => any) => (new (...args: any[]) => any) {
     return function (constructor: new (...args: any[]) => any): new (...args: any[]) => any {
         return class extends constructor {
@@ -159,7 +207,11 @@ export function init<UserData, Protocol>(topState: StateConstructor<UserData, Pr
     }
 }
 
-export function initialState<UserData, Protocol>(): (TargetState: StateConstructor<UserData, Protocol>) => void {
+/**
+ *
+ * @returns {(state: StateConstructor<UserData, Protocol>) => void}
+ */
+export function initialState<UserData, Protocol>(): (state: StateConstructor<UserData, Protocol>) => void {
     return function <UserData, Protocol>(TargetState: StateConstructor<UserData, Protocol>): void {
         let ParentOfTargetState = Object.getPrototypeOf(TargetState.prototype).constructor;
         if (ParentOfTargetState.initialState) {
@@ -176,13 +228,7 @@ export function initialState<UserData, Protocol>(): (TargetState: StateConstruct
 
 type Task = (done: () => void) => void;
 
-interface IStateThisBinding<UserData, Protocol> {
-    readonly ctx: UserData;
-    readonly hsm: IBoundHsm<UserData, Protocol>;
-    readonly post: PostProtocol<Protocol>;
-}
-
-interface IPrivateHsm<UserData, Protocol> extends IHsmLogger {
+interface IPrivateHsm<UserData, Protocol> extends IHsmHooks {
     indent: number;
     currentState: StateConstructor<UserData, Protocol>;
 }
@@ -244,11 +290,9 @@ class DebugTransition<UserData, Protocol> implements ITransition<UserData, Proto
 }
 
 
-class Hsm<UserData, Protocol> implements IStateThisBinding<UserData, Protocol>, IBoundHsm<UserData, Protocol>, IHsm<UserData, Protocol>, IPrivateHsm<UserData, Protocol> {
+class Hsm<UserData, Protocol extends {[key: string]: any} | undefined> implements IBoundHsm<UserData, Protocol>, IHsm<UserData, Protocol>, IPrivateHsm<UserData, Protocol> {
     hsm: IBoundHsm<UserData, Protocol>;
     ctx: UserData;
-    post: PostProtocol<Protocol>;
-    send: SendProtocol<Protocol>;
     topState: StateConstructor<UserData, Protocol>;
     currentState: StateConstructor<UserData, Protocol>;
     typeName: string;
@@ -264,8 +308,6 @@ class Hsm<UserData, Protocol> implements IStateThisBinding<UserData, Protocol>, 
     constructor(UserTopState: StateConstructor<UserData, Protocol>, userData: UserData, logLevel: LogLevel) {
         this.hsm = <any>this;
         this.ctx = userData;
-        this.post = createPostProtocol(this);
-        this.send = createSendProtocol(this);
         this.topState = UserTopState;
         this.currentState = UserTopState;
         this.typeName = Object.getPrototypeOf(userData).constructor.name;
@@ -276,6 +318,17 @@ class Hsm<UserData, Protocol> implements IStateThisBinding<UserData, Protocol>, 
         this.jobs = [];
         this.isRunning = false;
         this.indent = 0;
+    }
+
+    post<Signal extends keyof Protocol>(signal: SignalOf<Protocol, Signal>, ...payload:PayloadOf<Protocol, Signal>): void {
+        this.pushTask(createSyncTask(this, signal, ...payload));
+    }
+
+    send<Signal extends keyof Protocol>(signal: SignalOf<Protocol, Signal>, ...payload:PayloadOf<Protocol, Signal>): Promise<ReturnValueOf<Protocol, Signal>> {
+        let self = this;
+        return new Promise<ReturnValueOf<Protocol, Signal>>(function (resolve: (value: ReturnValueOf<Protocol, Signal> | undefined) => void, reject: (value: Error) => void) {
+            self.pushTask(createAsyncTask(self, resolve, reject, signal, ...payload));
+        });
     }
 
     transition(nextState: new () => IState<UserData, Protocol>): void {
@@ -426,17 +479,17 @@ function getDebugTransition<UserData, Protocol>(srcState: StateConstructor<UserD
     return new DebugTransition<UserData, Protocol>(srcPath, dstPath);
 }
 
-async function debugDispatch<UserData, Protocol>(hsm: Hsm<UserData, Protocol>, signalName: string, ...payload: any[]): Promise<any> {
-    hsm.logTrace(`[${hsm.currentState.name}] #${signalName}`);
+async function debugDispatch<UserData, Protocol extends {[Signal: string]:any} | undefined, Signal extends keyof Protocol>(hsm: Hsm<UserData, Protocol>, signal: SignalOf<Protocol, Signal>, ...payload: any[]): Promise<any> {
+    hsm.logTrace(`[${hsm.currentState.name}] #${signal}`);
     ++hsm.indent;
     try {
         // Execute the Method lookup
-        let messageHandler = hsm.currentState.prototype[signalName];
+        let messageHandler = hsm.currentState.prototype[signal];
         if (!messageHandler) {
             throw {
                 errorType: 'UnknownMessage',
                 errorLevel: 'Application Error',
-                errorMessage: `Cannot handle the #${signalName} message`,
+                errorMessage: `Cannot handle the #${signal} message`,
                 actorType: `${hsm.name}`,
                 currentState: `${hsm.currentState.name}`
             };
@@ -478,9 +531,20 @@ async function debugDispatch<UserData, Protocol>(hsm: Hsm<UserData, Protocol>, s
     }
 }
 
-function createAsyncTask<UserData, Protocol, ReturnType>(hsm: Hsm<UserData, Protocol>, resolve: (value: ReturnType | undefined) => void, reject: (value: Error) => void, signalName: string, ...payload: any[]): (doneCallback: () => void) => void {
+function createAsyncTask<
+    UserData,
+    ReturnType,
+    Protocol extends {[Signal: string]: any} | undefined,
+    Signal extends keyof Protocol
+>(
+    hsm: Hsm<UserData, Protocol>,
+    resolve: (value: ReturnType | undefined) => void,
+    reject: (value: Error) => void,
+    signal: SignalOf<Protocol, Signal>,
+    ...payload: any[]
+): (doneCallback: () => void) => void {
     return function (doneCallback: () => void) {
-        debugDispatch(hsm, signalName, ...payload)
+        debugDispatch(hsm, signal, ...payload)
             .then(function (result) {resolve(result);})
             .catch(function (err) {reject(err);})
             .finally(function () {
@@ -489,9 +553,18 @@ function createAsyncTask<UserData, Protocol, ReturnType>(hsm: Hsm<UserData, Prot
     };
 }
 
-function createSyncTask<UserData, Protocol, ReturnType>(hsm: Hsm<UserData, Protocol>, signalName: string, ...payload: any[]): (doneCallback: () => void) => void {
+function createSyncTask<
+    UserData,
+    Protocol extends {[Signal: string]: any} | undefined,
+    ReturnType,
+    Signal extends keyof Protocol
+>(
+    hsm: Hsm<UserData, Protocol>,
+    signal: SignalOf<Protocol, Signal>,
+    ...payload: any[]
+): (doneCallback: () => void) => void {
     return function (doneCallback: () => void): void {
-        debugDispatch(hsm, signalName, ...payload)
+        debugDispatch(hsm, signal, ...payload)
             .catch(function (err) {
                 hsm.logError(err);
             })
@@ -499,30 +572,4 @@ function createSyncTask<UserData, Protocol, ReturnType>(hsm: Hsm<UserData, Proto
                 doneCallback();
             });
     };
-}
-
-function createSendProtocol<UserData, Protocol, ReturnType>(hsm: Hsm<UserData, Protocol>): SendProtocol<Protocol> {
-    const asyncSendProtocolHandler = {
-        get: function (target: Hsm<UserData, Protocol>, signalName: string) {
-            return function <T>(...payload: any[]): Promise<T> {
-                return new Promise<T>(function (resolve: (value: T | undefined) => void, reject: (value: Error) => void) {
-                    target.pushTask(createAsyncTask(target, resolve, reject, signalName, ...payload));
-                });
-            };
-        },
-
-    };
-    return new Proxy(hsm, asyncSendProtocolHandler) as unknown as SendProtocol<Protocol>;
-}
-
-function createPostProtocol<UserData, Protocol>(hsm: Hsm<UserData, Protocol>): PostProtocol<Protocol> {
-    const sendProtocolHandler = {
-        get: function (self: Hsm<UserData, Protocol>, signalName: string): (...payload: any[]) => void {
-            return function (...payload: any[]): void {
-                let task: (doneCallback: () => void) => void = createSyncTask(self, signalName, ...payload);
-                self.pushTask(task);
-            }
-        }
-    };
-    return new Proxy(hsm, sendProtocolHandler) as unknown as PostProtocol<Protocol>;
 }

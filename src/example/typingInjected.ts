@@ -27,7 +27,7 @@ abstract class TopState extends ihsm.State<MyData, Protocol> implements Protocol
 class State1 extends TopState {
 
     async switchAndLog(preMessage: string, postMessage: string) {
-        this.hsm.logInfo( `${preMessage} invoked switchAndLog ${postMessage}`);
+        this.hsm.logInfo(`${preMessage} invoked switchAndLog ${postMessage}`);
         this.hsm.transition(State2);
     }
 
@@ -42,7 +42,7 @@ class MyData {
 export class State2 extends TopState {
 
     async switchAndLog(preMessage: string, postMessage: string) {
-        this.hsm.logInfo( `this is a user message: ${preMessage} - ${postMessage}`);
+        this.hsm.logInfo(`this is a user message: ${preMessage} - ${postMessage}`);
         this.hsm.transition(State2);
     }
 
@@ -51,12 +51,11 @@ export class State2 extends TopState {
 async function Injected() {
     let myData = new MyData();
     let hsm = myData.hsm;
-    hsm.post.switchAndLog("pre", "post");
-    await hsm.send.switchAndLog("pre", "post");
-    await hsm.send.setAndGet("x");
-    let x = await hsm.send.setAndGet("name");
-    // console.log(`value = "${x}"`);
-    await hsm.send.hello("x");
+    hsm.post('switchAndLog', 'pre', 'post');
+    await hsm.send('switchAndLog', 'pre', 'post');
+    await hsm.send('setAndGet', 'x');
+    let x = await hsm.send('setAndGet', 'name');
+    await hsm.send('hello', 'x');
 }
 
 (async () => {

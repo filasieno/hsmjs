@@ -1,5 +1,4 @@
 import * as ihsm from "../index";
-import { LogLevel } from "../index";
 
 class TopState extends ihsm.State {
     sample(...args: any[]) {
@@ -17,8 +16,7 @@ class State2 extends TopState {
 }
 
 async function Untyped() {
-    let hsm = ihsm.createObject(TopState, LogLevel.TRACE);
-    await hsm.send.sample("x");
+
 }
 
 (async () => {

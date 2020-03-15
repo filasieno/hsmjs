@@ -56,12 +56,12 @@ class MyData {
 async function Injected() {
     let myData = new MyData();
     let hsm = ihsm.create(TopState, myData, LogLevel.TRACE);
-    hsm.post.switchAndLog('pre', 'post');
-    await hsm.send.switchAndLog('pre', 'post');
-    await hsm.send.setAndGet('x');
-    let val: string = await hsm.send.newHello('x');
-    let x = await hsm.send.setAndGet('name');
-    hsm.post.hello('x');
+    hsm.post('switchAndLog', 'pre', 'post');
+    await hsm.send('switchAndLog', 'pre', 'post');
+    await hsm.send('setAndGet', 'x');
+    let val: string = await hsm.send('newHello', 'x');
+    let x = await hsm.send('setAndGet', 'name');
+    hsm.post('hello', 'x');
 }
 
 (async () => {
