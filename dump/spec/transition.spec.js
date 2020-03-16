@@ -11,22 +11,22 @@ let __importStar = (this && this.__importStar) || function (mod) {
 const ihsm = __importStar(require('../main'));
 
 describe('A suite for testing nextState objects.', () => {
-	class TopState extends ihsm.State {}
-	class A extends TopState  {}
-	class A1 extends A { _entry() {console.log(this.name+":ENTRY");}; _exit() {console.log(this.name+":EXIT");} }
-	class A11 extends A1 {}
-	class A111 extends A11 { _entry() {console.log(this.name+":ENTRY");}; _exit() {console.log(this.name+":EXIT");} }
-	class A2 extends A {}
-	class A21 extends A2 { _entry() {console.log(this.name+":ENTRY");}; _exit() {console.log(this.name+":EXIT");} }
-	class A211 extends A21 {}
-	class A2111 extends A211 { _entry() {console.log(this.name+":ENTRY");}; _exit() {console.log(this.name+":EXIT");} }
-	class B extends TopState {}
-	class B1 extends B { _entry() {console.log(this.name+":ENTRY");}; _exit() {console.log(this.name+":EXIT");} }
-	class C extends TopState {}
-	class C1 extends C {}
-	class C11 extends C1 {}
-	class C111 extends C11 {}
-	class C1111 extends C111 {}
+	class TopState extends ihsm.State {} // prettier-ignore
+	class A extends TopState  {} // prettier-ignore
+	class A1 extends A { _entry() {console.log(this.name+":ENTRY");}; _exit() {console.log(this.name+":EXIT");} } // prettier-ignore
+	class A11 extends A1 {} // prettier-ignore
+	class A111 extends A11 { _entry() {console.log(this.name+":ENTRY");}; _exit() {console.log(this.name+":EXIT");} } // prettier-ignore
+	class A2 extends A {} // prettier-ignore
+	class A21 extends A2 { _entry() {console.log(this.name+":ENTRY");}; _exit() {console.log(this.name+":EXIT");} } // prettier-ignore
+	class A211 extends A21 {} // prettier-ignore
+	class A2111 extends A211 { _entry() {console.log(this.name+":ENTRY");}; _exit() {console.log(this.name+":EXIT");} } // prettier-ignore
+	class B extends TopState {} // prettier-ignore
+	class B1 extends B { _entry() {console.log(this.name+":ENTRY");}; _exit() {console.log(this.name+":EXIT");} } // prettier-ignore
+	class C extends TopState {} // prettier-ignore
+	class C1 extends C {} // prettier-ignore
+	class C11 extends C1 {} // prettier-ignore
+	class C111 extends C11 {} // prettier-ignore
+	class C1111 extends C111 {} // prettier-ignore
 
 	TopState._initialState = C;
 	C._initialState = C1;
