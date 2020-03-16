@@ -122,8 +122,7 @@ build
 *.code-workspace
 
 # Generated files
-src/example/*.js
-src/example/*.d.ts
-src/example/typing.js
-src/index.js
+/src/example/*.js
+/src/example/*.d.ts
+/src/index.js
 
