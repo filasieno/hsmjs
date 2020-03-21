@@ -33,7 +33,7 @@
         "noImplicitReturns": true,
         "noFallthroughCasesInSwitch": true,
         "importHelpers": false,
-        "baseUrl": ".",
+        "baseUrl": "./dump/old/src",
         "paths": {
             "*": [
                 "*"
@@ -43,9 +43,7 @@
             "es2018",
             "dom"
         ],
-        "rootDirs": [
-            "build/root"
-        ],
+        "rootDirs": [ ".src/"],
         // "typeRoots": [],
         //"types": [],
         "allowSyntheticDefaultImports": true,
@@ -66,6 +64,9 @@
     "exclude": [
         "./lib",
         "./dump",
+        "./dump/old/src",
+        "./dump/old/src/example",
+        "./dump/old/src/tutorial",
         "tsconfig-*.js",
         "node_modules"
     ]

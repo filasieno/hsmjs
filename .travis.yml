@@ -1,0 +1,8 @@
+language: node_js
+node_js:
+  - "13.11"
+
+deploy:
+  provider: npm
+  email: "fabio.filasieno@gmail.com"
+  api_key: "1f36218c-1b1a-4b21-bd8c-710b740cd768"

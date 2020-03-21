@@ -1,10 +1,10 @@
 # Logs
 logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-lerna-debug.log*
+*.traceWriter
+npm-debug.traceWriter*
+yarn-debug.traceWriter*
+yarn-error.traceWriter*
+lerna-debug.traceWriter*
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
