@@ -61,7 +61,6 @@
         "arrowParens": "avoid",
         "bracketSpacing": true,
         "endOfLine": "lf",
-        "prefixWithI": "always",
         "printWidth": 512,
         "semi": true,
         "singleQuote": true,
