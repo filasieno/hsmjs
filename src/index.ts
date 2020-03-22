@@ -220,7 +220,7 @@ export interface IHsm<Context, Protocol> {
 	send<EventName extends keyof Protocol>(eventName: EventHandlerName<Protocol, EventName>, ...eventPayload: EventHandlerPayload<Protocol, EventName>): Promise<EventHandlerReply<Protocol, EventName>>;
 	post<EventName extends keyof Protocol>(eventName: EventHandlerName<Protocol, EventName>, ...eventPayload: EventHandlerPayload<Protocol, EventName>): void;
 	deferredPost<EventName extends keyof Protocol>(millis: number, eventName: EventHandlerName<Protocol, EventName>, ...eventPayload: EventHandlerPayload<Protocol, EventName>): void;
-	done(): Promise<void>;
+	sync(): Promise<void>;
 }
 
 /** @internal */
@@ -381,7 +381,7 @@ function getDebugTransition<Context, Protocol>(srcState: StateConstructor<Contex
 	return new DebugTransition<Context, Protocol>(srcPath, dstPath);
 }
 
-async function debugDispatch<Context, Protocol extends Any | undefined, EventName extends keyof Protocol>(hsm: Hsm<Context, Protocol>, dispatchKind: 'post' | 'send', eventName: EventHandlerName<Protocol, EventName>, eventPayload: EventHandlerPayload<Protocol, EventName>): Promise<EventHandlerReply<Protocol, EventName> | undefined> {
+async function debugDispatch<Context, Protocol extends Any | undefined, EventName extends keyof Protocol>(hsm: Hsm<Context, Protocol>, dispatchKind: 'post' | 'send', eventName: EventHandlerName<Protocol, EventName>, ...eventPayload: EventHandlerPayload<Protocol, EventName>): Promise<EventHandlerReply<Protocol, EventName> | undefined> {
 	hsm.logDebug(`${dispatchKind} #${eventName}${JSON.stringify(eventPayload)}`);
 	++hsm.indent;
 	try {
@@ -550,7 +550,7 @@ class Hsm<Context, Protocol> implements IHsm<Context, Protocol>, IBoundHsm<Conte
 
 		return new Promise<EventHandlerReply<Protocol, EventName>>((resolve: (result: EventHandlerReply<Protocol, EventName>) => void, reject: (err: Error) => void) => {
 			this.pushTask((doneCallback: () => void) => {
-				debugDispatch(this, 'send', eventName, eventPayload)
+				debugDispatch(this, 'send', eventName, ...eventPayload)
 					.then(result => {
 						resolve(result as EventHandlerReply<Protocol, EventName>);
 					})
@@ -564,9 +564,9 @@ class Hsm<Context, Protocol> implements IHsm<Context, Protocol>, IBoundHsm<Conte
 		});
 	}
 
-	private createPostTask<EventName extends keyof Protocol>(eventName: EventHandlerName<Protocol, EventName>, eventPayload: EventHandlerPayload<Protocol, EventName>): Task {
+	private createPostTask<EventName extends keyof Protocol>(eventName: EventHandlerName<Protocol, EventName>, ...eventPayload: EventHandlerPayload<Protocol, EventName>): Task {
 		return (doneCallback: () => void): void => {
-			debugDispatch(this, 'post', eventName, eventPayload)
+			debugDispatch(this, 'post', eventName, ...eventPayload)
 				.catch(err => {
 					this.logError(err);
 				})
@@ -578,7 +578,7 @@ class Hsm<Context, Protocol> implements IHsm<Context, Protocol>, IBoundHsm<Conte
 
 	post<EventName extends keyof Protocol>(eventName: EventHandlerName<Protocol, EventName>, ...eventPayload: EventHandlerPayload<Protocol, EventName>): void {
 		this.logTrace(`requested post #${eventName}${JSON.stringify(eventPayload)} `);
-		this.pushTask(this.createPostTask(eventName, eventPayload));
+		this.pushTask(this.createPostTask(eventName, ...eventPayload));
 	}
 
 	deferredPost<EventName extends keyof Protocol>(millis: number, eventName: EventHandlerName<Protocol, EventName>, ...eventPayload: EventHandlerPayload<Protocol, EventName>): void {
@@ -592,7 +592,7 @@ class Hsm<Context, Protocol> implements IHsm<Context, Protocol>, IBoundHsm<Conte
 		);
 	}
 
-	done(): Promise<void> {
+	sync(): Promise<void> {
 		this.logTrace('waiting for task completion ...');
 		function createDonePromise<Protocol, Context>(self: Hsm<Protocol, Context>): Promise<void> {
 			return new Promise<void>(function(resolve) {

@@ -61,7 +61,7 @@ async function main(): Promise<void> {
 		sm.post('wait');
 		sm.post('wait');
 		sm.post('wait');
-		await sm.done();
+		await sm.sync();
 	} catch (err) {
 		console.log(err);
 	}

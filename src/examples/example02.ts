@@ -122,7 +122,7 @@ async function main(): Promise<void> {
 		sm.post('switch');
 		sm.post('switch');
 		sm.post('switch');
-		await sm.done();
+		await sm.sync();
 	} catch (err) {
 		console.log(err);
 	}
