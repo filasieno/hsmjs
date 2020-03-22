@@ -1,95 +1,84 @@
 {
-    "author": "Fabio N. Filasieno",
-    "browser": "./lib/index.browser.js",
-    "bugs": {
-        "url": "https://github.com/filasieno/ihsm/issues"
-    },
-    "contributors": [
-        "Roberto Boati"
-    ],
-    "dependencies": {},
-    "description": "An idiomatic hierarchical state machine",
-    "devDependencies": {
-        "@types/chai": "^4.2.11",
-        "@types/eslint": "~6.1.8",
-        "@types/mocha": "^7.0.2",
-        "@types/node": "~13.7.7",
-        "@typescript-eslint/eslint-plugin": "~2.21.0",
-        "@typescript-eslint/parser": "~2.21.0",
-        "browserify": "^16.5.0",
-        "chai": "^4.2.0",
-        "eslint": "~6.8.0",
-        "eslint-config-google": "~0.14.0",
-        "eslint-config-prettier": "^6.10.0",
-        "eslint-plugin-prettier": "^3.1.2",
-        "husky": "^4.2.3",
-        "lint-staged": "^10.0.8",
-        "mocha": "^7.1.1",
-        "node": "~13.9.0",
-        "nodemon": "~2.0.2",
-        "onchange": "^6.1.0",
-        "prettier": "1.19.1",
-        "ts-node": "^8.7.0",
-        "tsify": "^4.0.1",
-        "typedoc": "~0.16.11",
-        "typescript": "^3.8.3"
-    },
-    "homepage": "https://github.com/filasieno/ihsm#readme",
-    "husky": {
-        "hooks": {
-            "pre-commit": "lint-staged"
-        }
-    },
-    "keywords": [
-        "hsm",
-        "hierarchical",
-        "fsm",
-        "state machine",
-        "hierarchical state machine",
-        "sm"
-    ],
-    "license": "MIT",
-    "lint-staged": {
-        "*.ts": [
-            "eslint",
-            "prettier --check"
-        ]
-    },
-    "main": "./lib/index.js",
-    "name": "ihsm",
-    "prettier": {
-        "arrowParens": "avoid",
-        "bracketSpacing": true,
-        "endOfLine": "lf",
-        "printWidth": 512,
-        "semi": true,
-        "singleQuote": true,
-        "tabWidth": 4,
-        "trailingComma": "es5",
-        "useTabs": true
-    },
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/filasieno/hsmjs.git"
-    },
-    "scripts": {
-        "build-browser": "tsc --build tsconfig.browser.json",
-        "build-node": "tsc --build tsconfig.json",
-        "clean": "rm -rf ./lib/ ./src/index.js ./src/index.js.map ./src/index.browser.js ./.tsc",
-        "dist": "npm run dist-node && npm run dist-browser",
-        "dist-browser": "mkdir -p ./lib && cp ./src/index.js ./lib/index.browser.js && cp ./src/index.d.ts ./lib/index.d.ts",
-        "dist-node": "mkdir -p ./lib && cp ./src/index.js ./lib/index.js && cp ./src/index.d.ts ./lib/index.d.ts",
-        "doc": "typedoc ./src/index.ts",
-        "lint": "eslint './src/index.ts'",
-        "prebuild-browser": "rm -f ./.tsc",
-        "prebuild-node": "rm -f ./.tsc",
-        "predist": "npm run clean",
-        "predist-browser": "npm run build-browser",
-        "predist-node": "npm run build-node",
-        "prettier": "prettier --write './src/**/*.ts'",
-        "prettier-watch": "onchange './src/**/*.ts' -- prettier --write {{changed}}",
-        "test": "mocha './src/spec/**/*.spec.ts' --reporter spec"
-    },
-    "types": "./lib/index.d.ts",
-    "version": "0.0.15"
+	"author": "Fabio N. Filasieno",
+	"browser": "./lib/index.browser.js",
+	"bugs": {
+		"url": "https://github.com/filasieno/ihsm/issues"
+	},
+	"contributors": [
+		"Roberto Boati"
+	],
+	"dependencies": {},
+	"description": "An idiomatic hierarchical state machine",
+	"devDependencies": {
+		"@types/chai": "^4.2.11",
+		"@types/eslint": "~6.1.8",
+		"@types/mocha": "^7.0.2",
+		"@types/node": "~13.7.7",
+		"@typescript-eslint/eslint-plugin": "~2.21.0",
+		"@typescript-eslint/parser": "~2.21.0",
+		"browserify": "^16.5.0",
+		"chai": "^4.2.0",
+		"eslint": "~6.8.0",
+		"eslint-config-google": "~0.14.0",
+		"eslint-config-prettier": "^6.10.0",
+		"eslint-plugin-prettier": "^3.1.2",
+		"husky": "^4.2.3",
+		"lint-staged": "^10.0.8",
+		"mocha": "^7.1.1",
+		"node": "~13.9.0",
+		"nodemon": "~2.0.2",
+		"onchange": "^6.1.0",
+		"prettier": "1.19.1",
+		"ts-node": "^8.7.0",
+		"tsify": "^4.0.1",
+		"typedoc": "~0.16.11",
+		"typescript": "^3.8.3"
+	},
+	"homepage": "https://github.com/filasieno/ihsm#readme",
+	"husky": {
+		"hooks": {
+			"pre-commit": "lint-staged"
+		}
+	},
+	"keywords": [
+		"hsm",
+		"hierarchical",
+		"fsm",
+		"state machine",
+		"hierarchical state machine",
+		"sm"
+	],
+	"license": "MIT",
+	"lint-staged": {
+		"*.ts": [
+			"eslint",
+			"prettier --check"
+		]
+	},
+	"main": "./lib/index.js",
+	"name": "ihsm",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/filasieno/hsmjs.git"
+	},
+	"scripts": {
+		"build-browser": "tsc --build tsconfig.browser.json",
+		"build-node": "tsc --build tsconfig.json",
+		"clean": "rm -rf ./lib/ ./src/index.js ./src/index.js.map ./src/index.browser.js ./.tsc",
+		"dist": "npm run dist-node && npm run dist-browser",
+		"dist-browser": "mkdir -p ./lib && cp ./src/index.js ./lib/index.browser.js && cp ./src/index.d.ts ./lib/index.d.ts",
+		"dist-node": "mkdir -p ./lib && cp ./src/index.js ./lib/index.js && cp ./src/index.d.ts ./lib/index.d.ts",
+		"doc": "typedoc ./src/index.ts",
+		"lint": "eslint './src/index.ts'",
+		"prebuild-browser": "rm -f ./.tsc",
+		"prebuild-node": "rm -f ./.tsc",
+		"predist": "npm run clean",
+		"predist-browser": "npm run build-browser",
+		"predist-node": "npm run build-node",
+		"prettier": "prettier --write './src/**/*.ts'",
+		"prettier-watch": "onchange './src/**/*.ts' -- prettier --write {{changed}}",
+		"test": "mocha './src/spec/**/*.spec.ts' --reporter spec"
+	},
+	"types": "./lib/index.d.ts",
+	"version": "0.0.15"
 }
