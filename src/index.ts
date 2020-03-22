@@ -46,7 +46,7 @@ function logLevelToString(level: LogLevel): string {
 
 export interface ITraceWriter {
 	logLevel: number;
-	write<Context, Protocol>(hsm: IHsm<Context, Protocol>, logLevel: number, indentLevel: number, msg?: any, ...optionalParameters: any[]): void;
+	write<Context, Protocol>(hsm: IHsm<Context, Protocol>, logLevel: number, indentLevel: number, msg?: Trace): void;
 }
 
 export interface IBoundHsm<Context, Protocol> {

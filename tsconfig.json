@@ -12,7 +12,7 @@
         "sourceMap": true,
         // "outFile": ".",                        // Concatenate and emit output to single file.
         // "outDir": "./build",
-        "rootDir": "./src/",
+        "rootDir": "./",
         "composite": false,
         "tsBuildInfoFile": "./.tsc",
         "removeComments": true,
@@ -43,7 +43,10 @@
             "es2018",
             "dom"
         ],
-        "rootDirs": [ ".src/"],
+        "rootDirs": [
+            ".src/",
+            ".spec/"
+        ],
         // "typeRoots": [],
         //"types": [],
         "allowSyntheticDefaultImports": true,
