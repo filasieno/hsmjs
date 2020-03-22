@@ -213,7 +213,7 @@ class C1111 extends C111 {
 }
 
 describe('transition', function() {
-	it('sets the initial state following the annotation directives', async (): Promise<void> => {
+	it('sets the initial state following the @ihsm.initialState annotation directives', async (): Promise<void> => {
 		const sm = ihsm.create(TopState, new TransitionTrace());
 		await sm.sync();
 

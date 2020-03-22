@@ -13,7 +13,7 @@ It supports:
    * Events with payload
    * Extended states
    * Hierarchically nested states
-   * Orthogonal state
+   * Orthogonal states
    * Actions
    * Transitions
    * Guards
@@ -40,6 +40,8 @@ npm install -g ihsm@latest
 
 ### Example 1: an untyped machine
 
+![LightSystem](assets/images/LightSystem.png)
+
 The first simple will...
  - Implementing a state machine
  - Driving a state machine
@@ -49,7 +51,7 @@ The first simple will...
 What follows is a simple state machine implemented in Typescript using _ihsm_. 
 
 ```typescript
-    import * as ihsm from 'dump/old/src/index';
+    import * as ihsm from 'ihsm';
 
     class LightMachine extends ihsm.TopState { 
         changeColor(newColor: string): void { this.ctx.color = newColor; } 
@@ -67,8 +69,6 @@ What follows is a simple state machine implemented in Typescript using _ihsm_.
         switchOff(): void { this.logDebug('light is already off'); }    
     } 
 ```
-
-
 
 
 an EventHandler is a method defined in a TopState class
