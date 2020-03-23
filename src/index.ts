@@ -749,11 +749,42 @@ export function create<Context, Protocol>(topState: StateConstructor<Context, Pr
 	return (restore(topState, ctx, options) as Hsm<Context, Protocol>).postInitTask();
 }
 
+/**
+ * TODO: add doc
+ * @param {StateConstructor<Context, Protocol>} TargetState
+ */
 export function initialState<Context, Protocol>(TargetState: StateConstructor<Context, Protocol>): void {
 	const ParentOfTargetState = Object.getPrototypeOf(TargetState.prototype).constructor;
-	if (Object.prototype.hasOwnProperty.call(ParentOfTargetState, 'initialState') && ParentOfTargetState.initialState) {
-		throw new Error(`@ihsm.initialState has been set twice for parent class "${ParentOfTargetState.name}"; check all classes that extend "${ParentOfTargetState.name}"`); // TODO: move to errors
+	if (ParentOfTargetState.initialState !== undefined) {
+		throw new InitialStateError(TargetState);
 	}
 	TargetState.isInitialState = true;
 	ParentOfTargetState.initialState = TargetState;
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+
+/** @internal */
+enum ErrorCode {
+	INITIAL_STATE_ERROR = 1000,
+}
+
+export abstract class HsmError extends Error {
+	protected constructor(public errorCode: number, message: string, public cause: string, public solution: string) {
+		super(message);
+	}
+	toString(): string {
+		return `IHSM-${this.errorCode}: ${this.message}`;
+	}
+}
+
+export class InitialStateError<Context, Protocol> extends HsmError {
+	constructor(TargetState: StateConstructor<Context, Protocol>) {
+		const ParentOfTargetState = Object.getPrototypeOf(TargetState.prototype).constructor;
+		const CurrentInitialState = ParentOfTargetState.initialState;
+		const message = 'Non unique initialState';
+		const cause = `the @initialState decorator has been set more than once on states that have the same parent state '${ParentOfTargetState.name}'; an initial state must be unique, while it has been found both on '${TargetState.name}' and '${CurrentInitialState.name}'`;
+		const solution = `Remove the @initialState decorator either from state '${CurrentInitialState.name}' or from state '${CurrentInitialState.name}'`;
+		super(ErrorCode.INITIAL_STATE_ERROR, message, cause, solution);
+	}
 }
