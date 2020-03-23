@@ -1,3 +1,14 @@
+export enum LogLevel {
+	ALL = 0,
+	TRACE,
+	DEBUG,
+	INFO,
+	WARN,
+	ERROR,
+	FATAL,
+	OFF,
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Any = { [key: string]: any };
 export type EventHandlerName<Protocol extends undefined | Any, EventName extends keyof Protocol> = Protocol extends undefined ? string : EventName;
@@ -10,39 +21,7 @@ export type StateConstructor<Context = Any, Protocol extends Any | undefined = u
 	name: string;
 };
 
-export enum LogLevel {
-	ALL = 0,
-	TRACE,
-	DEBUG,
-	INFO,
-	WARN,
-	ERROR,
-	FATAL,
-	OFF,
-}
-
 export type Trace = string | Error | Any;
-
-function logLevelToString(level: LogLevel): string {
-	switch (level) {
-		case LogLevel.TRACE:
-			return 'TRACE';
-		case LogLevel.DEBUG:
-			return 'DEBUG';
-		case LogLevel.INFO:
-			return 'INFO ';
-		case LogLevel.WARN:
-			return 'INFO ';
-		case LogLevel.ERROR:
-			return 'ERROR';
-		case LogLevel.FATAL:
-			return 'ERROR';
-		case LogLevel.OFF:
-			return 'OFF  ';
-		case LogLevel.ALL:
-			return 'ALL  ';
-	}
-}
 
 export interface ITraceWriter {
 	logLevel: number;
@@ -67,6 +46,71 @@ export interface IBoundHsm<Context, Protocol> {
 	post<EventName extends keyof Protocol>(eventName: EventHandlerName<Protocol, EventName>, ...eventPayload: EventHandlerPayload<Protocol, EventName>): void;
 	deferredPost<EventName extends keyof Protocol>(millis: number, eventName: EventHandlerName<Protocol, EventName>, ...eventPayload: EventHandlerPayload<Protocol, EventName>): void;
 	setStateForced(state: StateConstructor<Context, Protocol>): void;
+}
+
+export interface IState<Context, Protocol> {
+	_init(): Promise<void> | void;
+	_exit(): Promise<void> | void;
+	_entry(): Promise<void> | void;
+	_error(error: Error): Promise<void> | void;
+}
+
+function logLevelToString(level: LogLevel): string {
+	switch (level) {
+		case LogLevel.TRACE:
+			return 'TRACE';
+		case LogLevel.DEBUG:
+			return 'DEBUG';
+		case LogLevel.INFO:
+			return 'INFO ';
+		case LogLevel.WARN:
+			return 'INFO ';
+		case LogLevel.ERROR:
+			return 'ERROR';
+		case LogLevel.FATAL:
+			return 'ERROR';
+		case LogLevel.OFF:
+			return 'OFF  ';
+		case LogLevel.ALL:
+			return 'ALL  ';
+	}
+}
+
+interface IHsmInstance<Context, Protocol> {
+	ctx: Context;
+	hsm: Hsm<Context, Protocol>;
+}
+
+export interface IHsm<Context, Protocol> {
+	readonly id: string;
+	readonly currentStateName: string;
+	readonly contextTypeName: string;
+	readonly topStateName: string;
+	readonly currentState: StateConstructor<Context, Protocol>;
+	readonly TopState: StateConstructor<Context, Protocol>;
+	readonly ctx: Context;
+
+	logLevel: LogLevel;
+
+	send<EventName extends keyof Protocol>(eventName: EventHandlerName<Protocol, EventName>, ...eventPayload: EventHandlerPayload<Protocol, EventName>): Promise<EventHandlerReply<Protocol, EventName>>;
+	post<EventName extends keyof Protocol>(eventName: EventHandlerName<Protocol, EventName>, ...eventPayload: EventHandlerPayload<Protocol, EventName>): void;
+	deferredPost<EventName extends keyof Protocol>(millis: number, eventName: EventHandlerName<Protocol, EventName>, ...eventPayload: EventHandlerPayload<Protocol, EventName>): void;
+	sync(): Promise<void>;
+}
+
+/** @internal */
+type Task = (done: () => void) => void;
+
+/** @internal */
+interface ITransition<Context, Protocol> {
+	execute(hsm: Hsm<Context, Protocol>): Promise<void>;
+}
+
+export type TraceLevelType = 'trace' | 'debug' | 'none';
+
+export interface IHsmOptions {
+	logLevel: LogLevel;
+	TraceWriterFactory: new () => ITraceWriter;
 }
 
 export class BoundHsm<Context, Protocol> implements IBoundHsm<Context, Protocol> {
@@ -150,13 +194,6 @@ class ConsoleTraceWriter implements ITraceWriter {
 	}
 }
 
-export interface IState<Context, Protocol> {
-	_init(): Promise<void> | void;
-	_exit(): Promise<void> | void;
-	_entry(): Promise<void> | void;
-	_error(error: Error): Promise<void> | void;
-}
-
 export class TopState<Context = Any, Protocol = undefined> extends BoundHsm<Context, Protocol> implements IState<Context, Protocol> {
 	static get isInitialState(): boolean {
 		if (Object.prototype.hasOwnProperty.call(this, '_isInitialState')) {
@@ -201,38 +238,8 @@ export class TopState<Context = Any, Protocol = undefined> extends BoundHsm<Cont
 	}
 }
 
-interface IHsmInstance<Context, Protocol> {
-	ctx: Context;
-	hsm: Hsm<Context, Protocol>;
-}
-
-export interface IHsm<Context, Protocol> {
-	readonly id: string;
-	readonly currentStateName: string;
-	readonly contextTypeName: string;
-	readonly topStateName: string;
-	readonly currentState: StateConstructor<Context, Protocol>;
-	readonly TopState: StateConstructor<Context, Protocol>;
-	readonly ctx: Context;
-
-	logLevel: LogLevel;
-
-	send<EventName extends keyof Protocol>(eventName: EventHandlerName<Protocol, EventName>, ...eventPayload: EventHandlerPayload<Protocol, EventName>): Promise<EventHandlerReply<Protocol, EventName>>;
-	post<EventName extends keyof Protocol>(eventName: EventHandlerName<Protocol, EventName>, ...eventPayload: EventHandlerPayload<Protocol, EventName>): void;
-	deferredPost<EventName extends keyof Protocol>(millis: number, eventName: EventHandlerName<Protocol, EventName>, ...eventPayload: EventHandlerPayload<Protocol, EventName>): void;
-	sync(): Promise<void>;
-}
-
 /** @internal */
 let id = 10000000;
-
-/** @internal */
-type Task = (done: () => void) => void;
-
-/** @internal */
-interface ITransition<Context, Protocol> {
-	execute(hsm: Hsm<Context, Protocol>): Promise<void>;
-}
 
 // eslint-disable-next-line valid-jsdoc
 /** @internal */
@@ -701,11 +708,6 @@ class Hsm<Context, Protocol> implements IHsm<Context, Protocol>, IBoundHsm<Conte
 		this.pushTask(createInitTask(this));
 		return this;
 	}
-}
-
-export interface IHsmOptions {
-	logLevel: LogLevel;
-	TraceWriterFactory: new () => ITraceWriter;
 }
 
 /** @internal */
