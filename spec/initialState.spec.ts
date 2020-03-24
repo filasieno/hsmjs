@@ -11,12 +11,13 @@ describe('@initialState decorator', function() {
 
 		class B extends TopState {}
 
-		expect(A.isInitialState).eq(true);
-		expect(A.initialState).eq(undefined);
-		expect(B.isInitialState).eq(false);
-		expect(B.initialState).eq(undefined);
-		expect(TopState.initialState).eq(A);
-		expect(TopState.isInitialState).eq(false);
+		expect(ihsm.isInitialState(A)).eq(true);
+		expect(ihsm.hasInitialState(A)).eq(false);
+		expect(ihsm.isInitialState(B)).eq(false);
+		expect(ihsm.hasInitialState(B)).eq(false);
+		expect(ihsm.isInitialState(TopState)).eq(false);
+		expect(ihsm.hasInitialState(TopState)).eq(true);
+		expect(ihsm.getInitialState(TopState)).eq(A);
 	});
 
 	it('throws InitialStateError if @initialState is set on two or more states that have the same parent', async (): Promise<void> => {
@@ -29,6 +30,7 @@ describe('@initialState decorator', function() {
 			class B extends TopState {}
 			expect.fail('Should have failed');
 		} catch (e) {
+			console.log(e);
 			expect(e).is.instanceOf(ihsm.InitialStateError);
 		}
 	});
