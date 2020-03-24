@@ -36,16 +36,16 @@ class LightMachine extends ihsm.TopState<ihsm.Any, IProtocol> {
 		this.transition(SystemOn);
 	}
 	sample(): void {
-		this.logInfo('>>>>>> LightMachine');
+		console.log('sample');
 	}
 	_init(): void {
 		this.ctx.color = 'white';
 	}
 	_entry(): void {
-		this.logInfo('entry');
+		console.log('entry');
 	}
 	_exit(): void {
-		this.logInfo('exit');
+		console.log('exit');
 	}
 }
 
@@ -54,30 +54,30 @@ class SystemOn extends LightMachine {
 		console.log('>>>>>> SystemOn');
 	}
 	_entry(): void {
-		this.logInfo('entry');
+		console.log('entry');
 	}
 	_exit(): void {
-		this.logInfo('entry');
+		console.log('entry');
 	}
 	getReport(): string {
-		return `the state of the light is "${this.currentStateName}" is on and it's color is ${this.ctx.color}`;
+		return `the state of the light is "${this.stateName}" is on and it's color is ${this.ctx.color}`;
 	}
 }
 
 @ihsm.initialState
 class SystemOff extends LightMachine {
 	sample(): void {
-		this.logInfo('>>>>>> SystemOff');
+		console.log('>>>>>> SystemOff');
 	}
 	_entry(): void {
-		this.logInfo('entry');
+		console.log('entry');
 	}
 	_exit(): void {
-		this.logInfo('exit');
+		console.log('exit');
 	}
 	switch(): void {
 		this.sample();
-		this.logInfo('The system is off; cannot execute #switch');
+		console.log('The system is off; cannot execute #switch');
 	}
 }
 
@@ -90,10 +90,10 @@ class LightOn extends SystemOn {
 		this.transition(LightOff);
 	}
 	_entry(): void {
-		this.logInfo('entry');
+		console.log('entry');
 	}
 	_exit(): void {
-		this.logInfo('exit');
+		console.log('exit');
 	}
 }
 
@@ -107,16 +107,16 @@ class LightOff extends SystemOn {
 		this.transition(LightOn);
 	}
 	_entry(): void {
-		this.logInfo('entry');
+		console.log('entry');
 	}
 	_exit(): void {
-		this.logInfo('exit');
+		console.log('exit');
 	}
 }
 
 async function main(): Promise<void> {
 	try {
-		ihsm.configureLogLevel(ihsm.LogLevel.DEBUG);
+		ihsm.configureTraceLevel('all');
 		const sm = ihsm.create(LightMachine, {});
 		sm.post('startUp');
 		sm.post('switch');

@@ -5,6 +5,8 @@ import * as ihsm from '../src/index';
 
 type Cons = new () => TopState;
 
+ihsm.configureTraceLevel('debug');
+
 class TransitionTrace {
 	public initList: Cons[] = [];
 	public exitList: Cons[] = [];
@@ -16,8 +18,9 @@ interface IProtocol {
 	clear(): void;
 }
 
-class TopState extends ihsm.TopState<TransitionTrace, IProtocol> {
+class TopState extends ihsm.TopState<TransitionTrace, IProtocol> implements IProtocol {
 	transitionTo(s: Cons): void {
+		this.clear();
 		this.transition(s);
 	}
 	clear(): void {
@@ -35,7 +38,7 @@ class A extends TopState implements IProtocol {
 		this.ctx.entryList.push(A);
 	}
 	_exit(): void {
-		this.ctx.entryList.push(A);
+		this.ctx.exitList.push(A);
 	}
 }
 
@@ -214,74 +217,89 @@ class C1111 extends C111 {
 }
 
 describe('transition', function() {
+	let ctx: TransitionTrace;
+	let sm: ihsm.IHsm<TransitionTrace, IProtocol>;
+
+	beforeEach(async () => {
+		ctx = new TransitionTrace();
+		sm = ihsm.create(TopState, ctx);
+		await sm.sync();
+	});
+
 	it('sets the initial state following the @ihsm.initialState annotation directives', async (): Promise<void> => {
-		let ctx = new TransitionTrace();
-		const sm = ihsm.create(TopState, ctx);
-		await sm.sync();
-
-		expect(sm.CurrentState).eq(C1111);
-		const t: Cons[] = [C, C1, C11, C111, C1111];
-		expect(ctx.initList.length).equals(t.length);
-		for (let i = 0; i < ctx.initList.length; ++i) {
-			expect(ctx.initList[i]).equals(t[i]);
-		}
+		expect(sm.state).eq(C1111);
+		expect(ctx.initList).to.eql([C, C1, C11, C111, C1111]);
+		expect(ctx.entryList).to.eql([C, C1, C11, C111, C1111]);
 	});
 
-	/**
-	it('Checks nextState to another branch with common ancestor', async function() {
-		const sm = ihsm.create(TopState, {});
-
-		sm.post('clear');
-		await sm.sync();
-
+	it('checks nextState to another branch with common ancestor', async () => {
 		sm.post('transitionTo', A111);
-		sm.post('clear');
 		await sm.sync();
-		expect(sm.ctx.exitList).eq([A111, A11, A1]);
-		expect(sm.ctx.entryList).eq([A2, A21, A211]);
+
+		expect(sm.stateName).eq('A111');
+		expect(sm.state).eq(A111);
+
+		sm.post('transitionTo', A211);
+		await sm.sync();
+
+		expect(sm.stateName, 'A211');
+		expect(sm.state).eq(A211);
+
+		expect(ctx.exitList).to.eql([A111, A11, A1]);
+		expect(ctx.entryList).to.eql([A2, A21, A211]);
 	});
 
-	it('Checks nextState to ancestor', function() {
-		let t = tran.getTransition(A111, A1);
-		expect(t.exitList).toEqual([A111, A11]);
-		expect(t.entryList).toEqual([]);
+	it('checks nextState to ancestor', async () => {
+		sm.post('transitionTo', A111);
+		sm.post('transitionTo', A1);
+		await sm.sync();
+
+		expect(ctx.exitList).to.eql([A111, A11]);
+		expect(ctx.entryList).to.eql([]);
 	});
 
-	it('Checks nextState to descendant', function() {
-		let t = tran.getTransition(A1, A111);
-		expect(t.exitList).toEqual([]);
-		expect(t.entryList).toEqual([A11, A111]);
+	it('checks nextState to descendant', async () => {
+		sm.post('transitionTo', A111);
+		sm.post('transitionTo', A1);
+		await sm.sync();
+
+		expect(ctx.exitList).to.eql([A111, A11]);
+		expect(ctx.entryList).to.eql([]);
 	});
 
-	it('Checks nextState to another branch without common ancestor', function() {
-		let t = tran.getTransition(A2111, B1);
-		expect(t.exitList).toEqual([A2111, A211, A21, A2, A]);
-		expect(t.entryList).toEqual([B, B1]);
+	it('checks nextState to another branch without common ancestor', async () => {
+		sm.post('transitionTo', A2111);
+		sm.post('transitionTo', B1);
+		await sm.sync();
+
+		expect(ctx.exitList).to.eql([A2111, A211, A21, A2, A]);
+		expect(ctx.entryList).to.eql([B, B1]);
 	});
 
-	it('Checks nextState to self', function() {
-		let t = tran.getTransition(A, A);
-		expect(t.exitList).toEqual([]);
-		expect(t.entryList).toEqual([]);
+	it('checks nextState to self', async () => {
+		sm.post('transitionTo', A);
+		sm.post('transitionTo', A);
+		await sm.sync();
+
+		expect(ctx.exitList).to.eql([]);
+		expect(ctx.entryList).to.eql([]);
 	});
 
-	it('Checks nextState to a parent state', function() {
-		let t = tran.getTransition(A111, C1);
-		expect(t.exitList).toEqual([A111, A11, A1, A]);
-		expect(t.entryList).toEqual([C, C1, C11, C111, C1111]);
+	it('checks nextState to a parent state', async () => {
+		sm.post('transitionTo', A111);
+		sm.post('transitionTo', C1);
+		await sm.sync();
+
+		expect(ctx.exitList).to.eql([A111, A11, A1, A]);
+		expect(ctx.entryList).to.eql([C, C1, C11, C111, C1111]);
 	});
 
-	it('Checks nextState to parent state which initial state is the current state', function() {
-		let t = tran.getTransition(C1111, TopState);
-		expect(t.exitList).toEqual([C1111, C111, C11, C1, C]);
-		expect(t.entryList).toEqual([C, C1, C11, C111, C1111]);
-	});
+	it('checks nextState to parent state which initial state is the current state', async () => {
+		sm.post('transitionTo', C1111);
+		sm.post('transitionTo', TopState);
+		await sm.sync();
 
-	it('Checks transition actions', function() {
-		let t = tran.getTransition(A2111, B1);
-		let actionList = Array.from(t.getTransitionActions());
-		expect(actionList).toEqual([A2111.prototype._exit, A21.prototype._exit, B1.prototype._entry]);
+		expect(ctx.exitList).to.eql([C1111, C111, C11, C1, C]);
+		expect(ctx.entryList).to.eql([C, C1, C11, C111, C1111]);
 	});
-
-	 */
 });

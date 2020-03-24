@@ -3,7 +3,7 @@ import 'mocha';
 import * as ihsm from '../src/index';
 
 describe('@initialState decorator', function() {
-	it('sets State.isInitialState and State.initialState static fields', async (): Promise<void> => {
+	it('sets State._isInitialState and State._initialState on State constructor', async (): Promise<void> => {
 		class TopState extends ihsm.TopState {}
 
 		@ihsm.initialState
@@ -30,7 +30,6 @@ describe('@initialState decorator', function() {
 			class B extends TopState {}
 			expect.fail('Should have failed');
 		} catch (e) {
-			console.log(e);
 			expect(e).is.instanceOf(ihsm.InitialStateError);
 		}
 	});

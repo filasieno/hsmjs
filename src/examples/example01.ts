@@ -40,9 +40,6 @@ class LightOn extends LightMachine {
 
 @ihsm.initialState
 class LightOff extends LightMachine {
-	_entry(): void {
-		this.logInfo('entry');
-	}
 	switch(): void {
 		this.transition(LightOn);
 	}
@@ -53,7 +50,7 @@ class LightOff extends LightMachine {
 
 async function main(): Promise<void> {
 	try {
-		ihsm.configureLogLevel(ihsm.LogLevel.INFO);
+		ihsm.configureTraceLevel('all');
 		const sm = ihsm.create(LightMachine, {});
 		sm.post('changeColor', 'red');
 		sm.post('switch');

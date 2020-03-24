@@ -111,12 +111,12 @@ _State Machine Image_
 ```
 function main() {
     let sm = ihsm.create(LightMachine, {});
-    console.log(`state:${sm.CurrentState} color:${sm.ctx.color}`);
+    console.log(`state:${sm.state} color:${sm.ctx.color}`);
     sm.post('changeColor', 'red');
     sm.post('switchOn');
-    console.log(`state:${sm.CurrentState} color:${sm.ctx.color}`);
+    console.log(`state:${sm.state} color:${sm.ctx.color}`);
     sm.post('switchOff');
-    console.log(`state:${sm.CurrentState} color:${sm.ctx.color}`);
+    console.log(`state:${sm.state} color:${sm.ctx.color}`);
 } 
 ```
 
@@ -174,12 +174,12 @@ class LightOff extends LightMachine {
 
 function main() {
     let sm = ihsm.create(LightMachine, new Light());
-    console.log(`state:${sm.CurrentState} color:${sm.ctx.color}`);
+    console.log(`state:${sm.state} color:${sm.ctx.color}`);
     sm.post('changeColor', 'red');
     sm.post('switchOn');
-    console.log(`state:${sm.CurrentState} color:${sm.ctx.color}`);
+    console.log(`state:${sm.state} color:${sm.ctx.color}`);
     sm.post('switchOff');
-    console.log(`state:${sm.CurrentState} color:${sm.ctx.color}`);
+    console.log(`state:${sm.state} color:${sm.ctx.color}`);
 }
 
 
@@ -219,12 +219,12 @@ class LightOff extends LightMachine {
 
 function main() {
     let sm = ihsm.create(LightMachine, new Light());
-    console.log(`state:${sm.CurrentState} color:${sm.ctx.color}`);
+    console.log(`state:${sm.state} color:${sm.ctx.color}`);
     sm.post('changeColor', 'red');
     sm.post('switchOn');
-    console.log(`state:${sm.CurrentState} color:${sm.ctx.color}`);
+    console.log(`state:${sm.state} color:${sm.ctx.color}`);
     sm.post('switchOff');
-    console.log(`state:${sm.CurrentState} color:${sm.ctx.color}`);
+    console.log(`state:${sm.state} color:${sm.ctx.color}`);
 }
 
 
