@@ -22,6 +22,7 @@ interface IProtocol {
 	shutdown(): void;
 	startUp(): void;
 	sample(): void;
+	switch(): void;
 }
 
 class LightMachine extends ihsm.TopState<ihsm.Any, IProtocol> {
@@ -46,7 +47,6 @@ class LightMachine extends ihsm.TopState<ihsm.Any, IProtocol> {
 	_exit(): void {
 		this.logInfo('exit');
 	}
-	x = 10;
 }
 
 class SystemOn extends LightMachine {

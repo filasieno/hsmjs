@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { expect } from 'chai';
 import 'mocha';
 import * as ihsm from '../src/index';
@@ -214,14 +215,15 @@ class C1111 extends C111 {
 
 describe('transition', function() {
 	it('sets the initial state following the @ihsm.initialState annotation directives', async (): Promise<void> => {
-		const sm = ihsm.create(TopState, new TransitionTrace());
+		let ctx = new TransitionTrace();
+		const sm = ihsm.create(TopState, ctx);
 		await sm.sync();
 
-		expect(sm.currentState).eq(C1111);
+		expect(sm.CurrentState).eq(C1111);
 		const t: Cons[] = [C, C1, C11, C111, C1111];
-		expect(sm.ctx.initList.length).equals(t.length);
-		for (let i = 0; i < sm.ctx.initList.length; ++i) {
-			expect(sm.ctx.initList[i]).equals(t[i]);
+		expect(ctx.initList.length).equals(t.length);
+		for (let i = 0; i < ctx.initList.length; ++i) {
+			expect(ctx.initList[i]).equals(t[i]);
 		}
 	});
 
