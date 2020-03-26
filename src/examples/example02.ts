@@ -1,23 +1,7 @@
-// ---------------------------------------------------------------------------------------------------------------------
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-// author: Fabio N. Filasieno
-// ---------------------------------------------------------------------------------------------------------------------
-
 import * as ihsm from '../index';
+import { TraceLevel } from '../index';
 
-interface IProtocol {
+interface Protocol {
 	changeColor(newColor: string): void;
 	shutdown(): void;
 	startUp(): void;
@@ -25,7 +9,7 @@ interface IProtocol {
 	switch(): void;
 }
 
-class LightMachine extends ihsm.TopState<ihsm.Any, IProtocol> {
+class LightMachine extends ihsm.TopStateWithProtocol<Protocol> {
 	changeColor(newColor: string): void {
 		this.ctx.color = newColor;
 	}
@@ -60,7 +44,7 @@ class SystemOn extends LightMachine {
 		console.log('entry');
 	}
 	getReport(): string {
-		return `the state of the light is "${this.stateName}" is on and it's color is ${this.ctx.color}`;
+		return `the state of the light is "${this.currentStateName}" is on and it's color is ${this.ctx.color}`;
 	}
 }
 
@@ -116,8 +100,8 @@ class LightOff extends SystemOn {
 
 async function main(): Promise<void> {
 	try {
-		ihsm.configureTraceLevel('all');
-		const sm = ihsm.create(LightMachine, {});
+		ihsm.configureHsmTraceLevel(TraceLevel.ALL);
+		const sm = ihsm.createHsm(LightMachine, {});
 		sm.post('startUp');
 		sm.post('switch');
 		sm.post('switch');

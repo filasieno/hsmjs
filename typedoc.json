@@ -3,6 +3,7 @@
     "out": "lib/doc/api",
     "tsconfig": "tsconfig.json",
     "excludePrivate": true,
-    "stripInternal": true
+    "stripInternal": true,
+    "categorizeByGroup": true
 }
 

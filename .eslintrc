@@ -38,7 +38,8 @@
 		],
 		"max-len": ["error", 512],
 		"brace-style": ["error", "1tbs", { "allowSingleLine": true }],
-		"@typescript-eslint/interface-name-prefix": ["error", { "prefixWithI": "always" }],
-		"@typescript-eslint/no-use-before-define": ["error", { "functions": true, "classes": false }]
+		"@typescript-eslint/interface-name-prefix": ["error", { "prefixWithI": "never" }],
+		"@typescript-eslint/no-use-before-define": ["error", { "functions": true, "classes": false }],
+		"@typescript-eslint/no-explicit-any": ["off", { "ignoreRestArgs": true }]
 	}
 }

@@ -3,7 +3,7 @@ import 'mocha';
 import * as ihsm from '../src/index';
 
 describe('@initialState decorator', function() {
-	it('sets State._isInitialState and State._initialState on State constructor', async (): Promise<void> => {
+	it('sets TopState._isInitialState and TopState._initialState on TopState constructor', async (): Promise<void> => {
 		class TopState extends ihsm.TopState {}
 
 		@ihsm.initialState
@@ -25,12 +25,14 @@ describe('@initialState decorator', function() {
 
 		@ihsm.initialState
 		class A extends TopState {}
+
 		try {
 			@ihsm.initialState
 			class B extends TopState {}
 			expect.fail('Should have failed');
 		} catch (e) {
-			expect(e).is.instanceOf(ihsm.InitialStateError);
+			const err = e as ihsm.HsmError<any>;
+			expect(e.errorCode).equals(1000);
 		}
 	});
 });

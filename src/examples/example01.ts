@@ -16,6 +16,7 @@
 // ---------------------------------------------------------------------------------------------------------------------
 
 import * as ihsm from '../index';
+import { TraceLevel } from '../index';
 
 class LightMachine extends ihsm.TopState {
 	changeColor(newColor: string): void {
@@ -50,8 +51,8 @@ class LightOff extends LightMachine {
 
 async function main(): Promise<void> {
 	try {
-		ihsm.configureTraceLevel('all');
-		const sm = ihsm.create(LightMachine, {});
+		ihsm.configureHsmTraceLevel(TraceLevel.ALL);
+		const sm = ihsm.createHsm(LightMachine, {});
 		sm.post('changeColor', 'red');
 		sm.post('switch');
 		sm.post('switch');
