@@ -1,12 +1,9 @@
-[![Coverage Status](https://coveralls.io/repos/github/filasieno/ihsm/badge.svg?branch=dev)](https://coveralls.io/github/filasieno/ihsm?branch=dev)
+[![Coverage Status](https://coveralls.io/repos/github/filasieno/ihsm/badge.svg?branch=master)](https://coveralls.io/github/filasieno/ihsm?branch=dev)
+[![Build Status](https://travis-ci.com/filasieno/ihsm.svg?branch=master)](https://travis-ci.com/filasieno/ihsm)
 
 # ihsm
 
 An _idiomatic_ hierarchical state machine implementation library for Typescript and Javascript.
-
-It has been designed to _feel as "natural"_  as possible to any TS/JS developer. 
-
-_Easy to learn, hard to master_ 
 
 It's fully featured as it supports the full _UML currentState chart_ formalism, but it's so easy and natural to write that 
 its actually faster to define a state machine using code rather then diagrams.
@@ -44,4 +41,10 @@ npm install -g ihsm@latest
 
 _Coming soon_.
 
-Check our tests and the examples folder in the source repository.
+Check the ```./src/examples/``` and ```./spec/``` in the repository.
+
+# Development 
+
+[![Coverage Status](https://coveralls.io/repos/github/filasieno/ihsm/badge.svg?branch=dev)](https://coveralls.io/github/filasieno/ihsm?branch=dev)
+[![Build Status](https://travis-ci.com/filasieno/ihsm.svg?branch=dev)](https://travis-ci.com/filasieno/ihsm)
+
