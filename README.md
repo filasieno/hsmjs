@@ -1,4 +1,4 @@
-[![Coverage Status](https://coveralls.io/repos/github/filasieno/ihsm/badge.svg)](https://coveralls.io/github/filasieno/ihsm)
+[![Coverage Status](https://coveralls.io/repos/github/filasieno/ihsm/badge.svg?branch=dev)](https://coveralls.io/github/filasieno/ihsm?branch=dev)
 
 # ihsm
 
