@@ -812,21 +812,17 @@ class HsmObject<Context, Protocol extends {} | undefined> implements Hsm<Context
 	}
 
 	private exec(task: Task): void {
-		setTimeout(
-			function(self): void {
-				Promise.resolve()
-					.then(function() {
-						return new Promise<void>(function(resolve: () => void) {
-							task(resolve);
-						});
-					})
-					.then(function() {
-						self.dequeue();
+		setTimeout(() => {
+			Promise.resolve()
+				.then(() => {
+					return new Promise<void>((resolve: () => void) => {
+						task(resolve);
 					});
-			},
-			0,
-			this
-		);
+				})
+				.then(() => {
+					this.dequeue();
+				});
+		}, 0);
 	}
 
 	restore(state: Function & { prototype: TopState<Context, Protocol> }, ctx: Context): void {
