@@ -10,6 +10,7 @@
 	"dependencies": {},
 	"description": "An idiomatic hierarchical state machine",
 	"devDependencies": {
+		"@istanbuljs/nyc-config-typescript": "^1.0.1",
 		"@types/chai": "^4.2.11",
 		"@types/eslint": "~6.1.8",
 		"@types/mocha": "^7.0.2",
@@ -38,11 +39,6 @@
 		"typescript": "^3.8.3"
 	},
 	"homepage": "https://github.com/filasieno/ihsm#readme",
-	"husky": {
-		"hooks": {
-			"pre-commit": "lint-staged"
-		}
-	},
 	"keywords": [
 		"hsm",
 		"hierarchical",
@@ -52,17 +48,8 @@
 		"sm"
 	],
 	"license": "MIT",
-	"lint-staged": {
-		"*.ts": [
-			"eslint",
-			"prettier --check"
-		]
-	},
 	"main": "./lib/index.js",
 	"name": "ihsm",
-	"nyc": {
-		"exclude": "spec"
-	},
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/filasieno/ihsm.git"
@@ -77,7 +64,7 @@
 		"dist-node": "mkdir -p ./lib && cp ./src/index.js ./lib/index.js && cp ./src/index.d.ts ./lib/index.d.ts",
 		"postdoc": "mkdir -p ./lib/doc/api/assets/images && cp assets/images/* ./lib/doc/api/assets/images",
 		"doc": "typedoc ./src/index.ts && eslint ./src/index.ts",
-		"lint": "prettier --check ./src/**/*.ts",
+		"lint": "prettier --check './src/**/*.ts'",
 		"prebuild-browser": "rm -f ./.tsc",
 		"prebuild-node": "rm -f ./.tsc",
 		"predist": "npm run clean",
@@ -86,7 +73,7 @@
 		"prettier": "prettier --write './src/**/*.ts'",
 		"prettier-watch": "onchange './src/**/*.ts' -- prettier --write {{changed}}",
 		"build": "npm run dist",
-		"test": "nyc --reporter=html --reporter=text mocha -r ts-node/register spec/\\*\\*/\\*.spec.ts",
+		"test": "nyc --reporter=html --reporter=text mocha './spec/**/*.spec.ts'",
 		"coverage": "nyc report --reporter=text-lcov | coveralls"
 	},
 	"types": "./lib/index.d.ts",
