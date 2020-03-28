@@ -1,3 +1,5 @@
+[![Coverage Status](https://coveralls.io/repos/github/filasieno/ihsm/badge.svg)](https://coveralls.io/github/filasieno/ihsm)
+
 # ihsm
 
 An _idiomatic_ hierarchical state machine implementation library for Typescript and Javascript.

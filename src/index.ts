@@ -67,7 +67,7 @@ export enum TraceLevel {
  * @category Configuration
  */
 export interface TraceWriter {
-	write<Context, Protocol>(hsm: TraceWriterBoundHsm<Context, Protocol>, traceObject: any): void;
+	write<Context, Protocol>(hsm: TraceWriterBoundHsm<Context, Protocol>, msg: any): void;
 }
 
 /**
