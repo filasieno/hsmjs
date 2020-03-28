@@ -5,22 +5,19 @@ import * as ihsm from '../src/index';
 type Cons = new () => TopState;
 
 interface Protocol {
-	transitionTo(s: Cons): void;
+	hello(): void;
 }
 
-class TopState extends ihsm.TopStateWithProtocol<Protocol> implements Protocol {
-	transitionTo(s: Cons): void {
-		this.transition(s);
+class TopState extends ihsm.TopState<ihsm.Ctx, Protocol> implements Protocol {
+	hello(): void {
+		this.unhandled();
 	}
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 class A extends TopState {
-	_entry(): void {
-		new Error('A fatal error');
-	}
-	_exit(): void {
-		this.ctx.exitList.push(A);
+	hello() {
+		this.trace('hello');
 	}
 }
 
@@ -30,17 +27,19 @@ class B extends TopState {}
 
 function generateTransitionTest(traceLevel: ihsm.TraceLevel) {
 	return function(): void {
-		let sm: ihsm.HsmWithProtocol<Protocol>;
+		let sm: ihsm.Hsm<ihsm.Ctx, Protocol>;
 
 		beforeEach(async () => {
 			console.log(`Current trace level: ${traceLevel}`);
 			ihsm.configureHsmTraceLevel(traceLevel);
-			sm = ihsm.createHsm(TopState, {});
+			sm = ihsm.create(TopState, {});
 			await sm.sync();
 		});
 
 		// eslint-disable-next-line @typescript-eslint/no-empty-function
-		it(`gets a last chance to catch the event`, async () => {});
+		it(`gets a last chance to catch the event`, async () => {
+			sm.post('hello');
+		});
 
 		// eslint-disable-next-line @typescript-eslint/no-empty-function
 		it(`if uncaught throws an EventHandler exception and moves the state machine to FatalErrorState`, async () => {});
@@ -53,6 +52,6 @@ function generateTransitionTest(traceLevel: ihsm.TraceLevel) {
 	};
 }
 
-for (const traceLevel of Object.values(ihsm.TraceLevel)) {
+for (const traceLevel of [0, 1, 2]) {
 	describe(`A unhandled event (traceLevel = ${traceLevel})`, generateTransitionTest(traceLevel as ihsm.TraceLevel));
 }

@@ -71,7 +71,7 @@
 		"dist-browser": "mkdir -p ./lib && cp ./src/index.js ./lib/index.browser.js && cp ./src/index.d.ts ./lib/index.d.ts",
 		"dist-node": "mkdir -p ./lib && cp ./src/index.js ./lib/index.js && cp ./src/index.d.ts ./lib/index.d.ts",
 		"postdoc": "mkdir -p ./lib/doc/api/assets/images && cp assets/images/* ./lib/doc/api/assets/images",
-		"doc": "typedoc ./src/index.ts",
+		"doc": "typedoc ./src/index.ts && eslint ./src/index.ts",
 		"lint": "prettier --check ./src/**/*.ts",
 		"prebuild-browser": "rm -f ./.tsc",
 		"prebuild-node": "rm -f ./.tsc",
