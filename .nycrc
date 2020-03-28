@@ -1,0 +1,22 @@
+{
+	"extends": "@istanbuljs/nyc-config-typescript",
+	"all": true,
+	"extension": [".ts"],
+	"check-coverage": true,
+	"require": [
+		 "ts-node/register"
+	],
+	"include": [
+		"./src/**/*.ts"
+	],
+	"exclude": [
+		"./node_modules/",
+		"./coverage/",
+		"./spec/"
+	],
+	"reporter": [
+		"text", "text-summary",
+		"lcov",
+		"text-lcov"
+	]
+}
