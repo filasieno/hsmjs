@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import 'mocha';
+import { TRACE_LEVELS } from './trace.setup';
 import * as ihsm from '../src/index';
 
 type Cons = new () => TopState;
@@ -165,24 +166,24 @@ class C1111 extends C111 {
 	}
 }
 
-function generateTransitionTest(traceLevel: ihsm.TraceLevel) {
-	return function() {
+for (const traceLevel of TRACE_LEVELS) {
+	describe(`transition (traceLevel = ${traceLevel})`, function() {
 		let ctx: TransitionTrace;
 		let sm: ihsm.Hsm<TransitionTrace, Protocol>;
 		beforeEach(async () => {
-			console.log(`Current trace level: ${traceLevel}`);
-			ihsm.configureHsmTraceLevel(traceLevel);
+			console.log(`Current trace level: ${traceLevel as ihsm.TraceLevel}`);
+			ihsm.configureHsmTraceLevel(traceLevel as ihsm.TraceLevel);
 			ctx = new TransitionTrace();
 			sm = ihsm.create(TopState, ctx);
 			await sm.sync();
 		});
 
-		it(`using sets the initial currentState following the @ihsm.initialState annotation directives (traceLevel = ${traceLevel})`, async (): Promise<void> => {
+		it(`using sets the initial currentState following the @ihsm.initialState annotation directives (traceLevel = ${traceLevel as ihsm.TraceLevel})`, async (): Promise<void> => {
 			expect(sm.currentState).eq(C1111);
 			expect(ctx.entryList).to.eql([C, C1, C11, C111, C1111]);
 		});
 
-		it(`checks nextState to another branch with common ancestor (traceLevel = ${traceLevel})`, async () => {
+		it(`checks nextState to another branch with common ancestor (traceLevel = ${traceLevel as ihsm.TraceLevel})`, async () => {
 			sm.post('transitionTo', A111);
 			await sm.sync();
 
@@ -199,7 +200,7 @@ function generateTransitionTest(traceLevel: ihsm.TraceLevel) {
 			expect(ctx.entryList).to.eql([A2, A21, A211]);
 		});
 
-		it(`checks nextState to ancestor (traceLevel = ${traceLevel})`, async () => {
+		it(`checks nextState to ancestor (traceLevel = ${traceLevel as ihsm.TraceLevel})`, async () => {
 			sm.post('transitionTo', A111);
 			sm.post('transitionTo', A1);
 			await sm.sync();
@@ -208,7 +209,7 @@ function generateTransitionTest(traceLevel: ihsm.TraceLevel) {
 			expect(ctx.entryList).to.eql([]);
 		});
 
-		it(`checks nextState to descendant (traceLevel = ${traceLevel})`, async () => {
+		it(`checks nextState to descendant (traceLevel = ${traceLevel as ihsm.TraceLevel})`, async () => {
 			sm.post('transitionTo', A111);
 			sm.post('transitionTo', A1);
 			await sm.sync();
@@ -217,7 +218,7 @@ function generateTransitionTest(traceLevel: ihsm.TraceLevel) {
 			expect(ctx.entryList).to.eql([]);
 		});
 
-		it(`checks nextState to another branch without common ancestor (traceLevel = ${traceLevel})`, async () => {
+		it(`checks nextState to another branch without common ancestor (traceLevel = ${traceLevel as ihsm.TraceLevel})`, async () => {
 			sm.post('transitionTo', A2111);
 			sm.post('transitionTo', B1);
 			await sm.sync();
@@ -226,7 +227,7 @@ function generateTransitionTest(traceLevel: ihsm.TraceLevel) {
 			expect(ctx.entryList).to.eql([B, B1]);
 		});
 
-		it(`checks nextState to self (traceLevel = ${traceLevel})`, async () => {
+		it(`checks nextState to self (traceLevel = ${traceLevel as ihsm.TraceLevel})`, async () => {
 			sm.post('transitionTo', A);
 			sm.post('transitionTo', A);
 			await sm.sync();
@@ -235,7 +236,7 @@ function generateTransitionTest(traceLevel: ihsm.TraceLevel) {
 			expect(ctx.entryList).to.eql([]);
 		});
 
-		it(`checks nextState to a parent currentState (traceLevel = ${traceLevel})`, async () => {
+		it(`checks nextState to a parent currentState (traceLevel = ${traceLevel as ihsm.TraceLevel})`, async () => {
 			sm.post('transitionTo', A111);
 			sm.post('transitionTo', C1);
 			await sm.sync();
@@ -244,7 +245,7 @@ function generateTransitionTest(traceLevel: ihsm.TraceLevel) {
 			expect(ctx.entryList).to.eql([C, C1, C11, C111, C1111]);
 		});
 
-		it(`checks nextState to parent currentState which initial currentState is the current currentState (traceLevel = ${traceLevel})`, async () => {
+		it(`checks nextState to parent currentState which initial currentState is the current currentState (traceLevel = ${traceLevel as ihsm.TraceLevel})`, async () => {
 			sm.post('transitionTo', C1111);
 			sm.post('transitionTo', TopState);
 			await sm.sync();
@@ -252,9 +253,5 @@ function generateTransitionTest(traceLevel: ihsm.TraceLevel) {
 			expect(ctx.exitList).to.eql([C1111, C111, C11, C1, C]);
 			expect(ctx.entryList).to.eql([C, C1, C11, C111, C1111]);
 		});
-	};
-}
-
-for (const traceLevel of [0, 1, 2]) {
-	describe(`transition (traceLevel = ${traceLevel})`, generateTransitionTest(traceLevel as ihsm.TraceLevel));
+	});
 }

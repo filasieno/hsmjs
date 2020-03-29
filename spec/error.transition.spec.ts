@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 import 'mocha';
 import * as ihsm from '../src/index';
+import { TRACE_LEVELS } from './trace.setup';
 
 type Cons = new () => TopState;
 
@@ -8,7 +9,7 @@ interface Protocol {
 	transitionTo(s: Cons): void;
 }
 
-class TopState extends ihsm.TopState<ihsm.Ctx, Protocol> implements Protocol {
+class TopState extends ihsm.TopState<ihsm.Any, Protocol> implements Protocol {
 	transitionTo(s: Cons): void {
 		this.transition(s);
 	}
@@ -29,18 +30,18 @@ class C extends TopState {
 	}
 }
 
-function generateTest(traceLevel: ihsm.TraceLevel) {
-	return function(): void {
-		let sm: ihsm.Hsm<ihsm.Ctx, Protocol>;
+for (const traceLevel of TRACE_LEVELS) {
+	describe(`A transition that throws an error (traceLevel = ${traceLevel})`, function(): void {
+		let sm: ihsm.Hsm<ihsm.Any, Protocol>;
 
 		beforeEach(async () => {
-			console.log(`Current trace level: ${traceLevel}`);
-			ihsm.configureHsmTraceLevel(traceLevel);
+			console.log(`Current trace level: ${traceLevel as ihsm.TraceLevel}`);
+			ihsm.configureHsmTraceLevel(traceLevel as ihsm.TraceLevel);
 			sm = ihsm.create(TopState, {});
 			await sm.sync();
 		});
 
-		it(`logs an error from the exit() callback and moves the state machine to the 'FatalErrorState' (traceLevel = ${traceLevel})`, async () => {
+		it(`logs an error from the exit() callback and moves the state machine to the 'FatalErrorState' (traceLevel = ${traceLevel as ihsm.TraceLevel})`, async () => {
 			expect(sm.currentState).equals(B);
 
 			sm.post('transitionTo', C);
@@ -53,7 +54,7 @@ function generateTest(traceLevel: ihsm.TraceLevel) {
 			expect(sm.currentState).equals(ihsm.FatalErrorState);
 		});
 
-		it(`logs an error from the entry() callback and moves the state machine to the 'FatalErrorState' (traceLevel = ${traceLevel})`, async () => {
+		it(`logs an error from the entry() callback and moves the state machine to the 'FatalErrorState' (traceLevel = ${traceLevel as ihsm.TraceLevel})`, async () => {
 			expect(sm.currentState).equals(B);
 
 			sm.post('transitionTo', A);
@@ -61,9 +62,5 @@ function generateTest(traceLevel: ihsm.TraceLevel) {
 
 			expect(sm.currentState).equals(ihsm.FatalErrorState);
 		});
-	};
-}
-
-for (const traceLevel of [0, 1, 2]) {
-	describe(`A transition that throws an error (traceLevel = ${traceLevel})`, generateTest(traceLevel as ihsm.TraceLevel));
+	});
 }

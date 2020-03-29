@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 import 'mocha';
 import * as ihsm from '../src/index';
+import { TRACE_LEVELS } from './trace.setup';
 
 class TopState extends ihsm.TopState {}
 @ihsm.initialState
@@ -12,13 +13,13 @@ class B extends A {
 	}
 }
 
-function generateTest(traceLevel: ihsm.TraceLevel) {
-	return function(): void {
+for (const traceLevel of TRACE_LEVELS) {
+	describe(`Initialization failure (traceLevel = ${traceLevel})`, function(): void {
 		let sm: ihsm.Hsm;
 
 		beforeEach(async () => {
-			console.log(`Current trace level: ${traceLevel}`);
-			ihsm.configureHsmTraceLevel(traceLevel);
+			console.log(`Current trace level: ${traceLevel as ihsm.TraceLevel}`);
+			ihsm.configureHsmTraceLevel(traceLevel as ihsm.TraceLevel);
 		});
 
 		it(`moves the state machine to FatalErrorState`, async () => {
@@ -26,9 +27,5 @@ function generateTest(traceLevel: ihsm.TraceLevel) {
 			await sm.sync();
 			expect(sm.currentStateName).equals('FatalErrorState');
 		});
-	};
-}
-
-for (const traceLevel of [0, 1, 2]) {
-	describe(`Initialization failure (traceLevel = ${traceLevel})`, generateTest(traceLevel as ihsm.TraceLevel));
+	});
 }
