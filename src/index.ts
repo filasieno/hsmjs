@@ -10,7 +10,7 @@ export type EventHandlerName<Protocol extends {} | undefined, EventName extends 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type EventHandlerPayload<Protocol extends {} | undefined, EventName extends keyof Protocol> = Protocol extends undefined ? any[] : Protocol[EventName] extends (...payload: infer Payload) => Promise<void> | void ? (Payload extends any[] ? Payload : never) : never;
 
-export type State<UserData = Any, Protocol extends {} | undefined = undefined> = Function & { prototype: TopState<UserData, Protocol> };
+export type State<UserData = Any, Protocol extends {} | undefined = undefined> = Function & { prototype: BaseTopState<UserData, Protocol> };
 /**
  * The default context type
  */
@@ -66,7 +66,7 @@ export class InitialStateError<Context, Protocol extends {} | undefined> extends
 export enum TraceLevel {
 	NONE,
 	DEBUG,
-	ALL,
+	TRACE,
 }
 
 /**
@@ -75,6 +75,7 @@ export enum TraceLevel {
  */
 export interface TraceWriter {
 	write<Context, Protocol>(hsm: TraceWriterBoundHsm<Context, Protocol>, msg: any): void;
+	writeTrace<Context, Protocol>(hsm: TraceWriterBoundHsm<Context, Protocol>, trace: TraceLevel, msg: any): void;
 }
 
 /**
@@ -87,11 +88,14 @@ export interface TraceWriterBoundHsm<Context, Protocol extends {} | undefined> {
 	readonly topState: State<Context, Protocol>;
 	readonly topStateName: string;
 	readonly ctxTypeName: string;
-	readonly traceLevel: TraceLevel;
 	readonly traceContextLevel: number;
 	readonly traceHeader: string;
 	readonly eventName: string;
 	readonly eventPayload: any[];
+
+	traceLevel: TraceLevel;
+	traceWriter: TraceWriter;
+	dispatchErrorCallback: DispatchErrorCallback<Context, Protocol>;
 }
 
 /**
@@ -107,7 +111,7 @@ export interface BaseHsm<Context, Protocol extends {} | undefined> extends Trace
  */
 export interface Hsm<Context = Any, Protocol extends {} | undefined = undefined> extends BaseHsm<Context, Protocol> {
 	sync(): Promise<void>;
-	restore(TopState: State<Context, Protocol>, state: State<Context, Protocol>, ctx: Context, clearCache?: boolean): void;
+	restore(TopState: State<Context, Protocol>, state: State<Context, Protocol>, ctx: Context, options?: Options): void;
 }
 
 /**
@@ -115,11 +119,10 @@ export interface Hsm<Context = Any, Protocol extends {} | undefined = undefined>
  */
 export interface StateBoundHsm<Context, Protocol extends {} | undefined> extends BaseHsm<Context, Protocol> {
 	readonly ctx: Context;
-	readonly traceWriter: TraceWriter;
+	traceWriter: TraceWriter;
 	transition(nextState: State<Context, Protocol>): void;
 	unhandled(): never;
 	sleep(millis: number): Promise<void>;
-	trace(msg: any): void;
 }
 
 /** @internal */
@@ -142,15 +145,37 @@ interface Transition<Context, Protocol extends {} | undefined> {
  * todo
  * @category Configuration
  */
-export interface CreateOptions {
+export interface Options {
 	traceLevel: TraceLevel;
-	TraceWriterFactory: new () => TraceWriter;
+	traceWriter: TraceWriter;
+	dispatchErrorCallback: <Context, Protocol extends {} | undefined>(hsm: Hsm<Context, Protocol>, traceWriter: TraceWriter, err: Error) => void;
+}
+
+/**
+ * todo
+ * @param {Hsm<Context, Protocol>} hsm
+ * @param {TraceWriter} traceWriter
+ * @param {Error} err
+ */
+export function defaultDispatchErrorCallback<Context, Protocol extends {} | undefined>(hsm: Hsm<Context, Protocol>, traceWriter: TraceWriter, err: Error): void {
+	traceWriter.write(hsm, `An event dispatch has failed; error ${err.name}: ${err.message} has not been managed`);
+	traceWriter.write(hsm, err);
+	throw err;
 }
 
 /**
  * @category Configuration
  */
 export class ConsoleTraceWriter implements TraceWriter {
+	writeTrace<Context, Protocol extends {} | undefined>(hsm: StateBoundHsm<Context, Protocol>, traceLevel: TraceLevel, trace: any): void {
+		if (hsm.traceLevel < traceLevel) return;
+		if (typeof trace == 'string') {
+			console.log(`${TraceLevel[traceLevel]}|${hsm.traceHeader}|${trace}`);
+		} else {
+			console.log(trace);
+		}
+	}
+
 	write<Context, Protocol extends {} | undefined>(hsm: StateBoundHsm<Context, Protocol>, trace: any): void {
 		if (typeof trace == 'string') {
 			console.log(`${hsm.traceHeader}|${trace}`);
@@ -221,8 +246,12 @@ export function hasInitialState<Context, Protocol extends {} | undefined>(State:
 export function initialState<Context, Protocol extends {} | undefined>(TargetState: State<Context, Protocol>): void {
 	const ParentOfTargetState = Object.getPrototypeOf(TargetState.prototype).constructor;
 	if (hasInitialState(ParentOfTargetState)) throw new InitialStateError(TargetState);
-	Object.defineProperty(TargetState, '_isInitialState', { value: true, writable: false, configurable: false, enumerable: false, });
-	Object.defineProperty(ParentOfTargetState, '_initialState', { value: TargetState, writable: false, configurable: false, enumerable: false, });
+	Object.defineProperty(TargetState, '_isInitialState', {
+		value: true, writable: false, configurable: false, enumerable: false,
+	});
+	Object.defineProperty(ParentOfTargetState, '_initialState', {
+		value: TargetState, writable: false, configurable: false, enumerable: false,
+	});
 }
 
 export interface StateMachineEvents<Context, Protocol> {
@@ -233,42 +262,62 @@ export interface StateMachineEvents<Context, Protocol> {
 }
 
 // prettier-ignore
-export abstract class TopState<Context = Any, Protocol extends {} | undefined = undefined> implements StateBoundHsm<Context, Protocol>, StateMachineEvents<Context, Protocol> {
+export abstract class BaseTopState<Context = Any, Protocol extends {} | undefined = undefined> implements StateBoundHsm<Context, Protocol>, StateMachineEvents<Context, Protocol> {
 	readonly ctx!: Context;
 	readonly hsm!: StateBoundHsm<Context, Protocol>;
 
-	constructor() { throw new Error("Fatal error: States cannot be instantiated") }
+	constructor() { throw new Error('Fatal error: States cannot be instantiated'); }
 
-	get eventName(): string { return this.hsm.eventName }
-	get eventPayload(): any[] { return this.hsm.eventPayload }
-	get traceContextLevel(): number { return this.hsm.traceContextLevel }
-	get traceHeader(): string { return this.hsm.traceHeader }
-	get topState(): State<Context, Protocol> { return this.hsm.topState }
-	get currentStateName(): string { return this.hsm.currentStateName }
-	get currentState(): State<Context, Protocol> { return this.hsm.currentState }
-	get ctxTypeName(): string { return this.hsm.ctxTypeName }
-	get id(): number { return this.hsm.id }
-	get traceLevel(): TraceLevel { return this.hsm.traceLevel }
-	get topStateName(): string { return this.hsm.topStateName }
-	get traceWriter(): TraceWriter { return this.hsm.traceWriter }
+	get eventName(): string { return this.hsm.eventName; }
 
-	transition(nextState: State<Context, Protocol>): void { this.hsm.transition(nextState) }
-	unhandled(): never { this.hsm.unhandled() }
-	sleep(millis: number): Promise<void> { return this.hsm.sleep(millis) }
-	trace(msg: any): void { this.hsm.trace(msg) }
-	writeTrace(msg: any): void { this.hsm.traceWriter.write(this.hsm, msg)}
+	get eventPayload(): any[] { return this.hsm.eventPayload; }
 
-	post<EventName extends keyof Protocol>(
-		eventName: EventHandlerName<Protocol, EventName>,
-		...eventPayload: EventHandlerPayload<Protocol, EventName>
-	): void {
+	get traceContextLevel(): number { return this.hsm.traceContextLevel; }
+
+	get traceHeader(): string { return this.hsm.traceHeader; }
+
+	get topState(): State<Context, Protocol> { return this.hsm.topState; }
+
+	get currentStateName(): string { return this.hsm.currentStateName; }
+
+	get currentState(): State<Context, Protocol> { return this.hsm.currentState; }
+
+	get ctxTypeName(): string { return this.hsm.ctxTypeName; }
+
+	get id(): number { return this.hsm.id; }
+
+	get traceLevel(): TraceLevel { return this.hsm.traceLevel; }
+
+	get topStateName(): string { return this.hsm.topStateName; }
+
+	get traceWriter(): TraceWriter { return this.hsm.traceWriter; }
+
+	set traceWriter(value) {
+		this.hsm.traceWriter = value;
+	}
+
+	// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+	get dispatchErrorCallback() {
+		return this.hsm.dispatchErrorCallback;
+	}
+
+	set dispatchErrorCallback(value) {
+		this.hsm.dispatchErrorCallback = value;
+	}
+
+	transition(nextState: State<Context, Protocol>): void { this.hsm.transition(nextState); }
+
+	unhandled(): never { this.hsm.unhandled(); }
+
+	sleep(millis: number): Promise<void> { return this.hsm.sleep(millis); }
+
+	writeTrace(msg: any): void { this.hsm.traceWriter.write(this.hsm, msg);}
+
+	post<EventName extends keyof Protocol>(eventName: EventHandlerName<Protocol, EventName>, ...eventPayload: EventHandlerPayload<Protocol, EventName>): void {
 		this.hsm.post(eventName, ...eventPayload);
 	}
 
-	deferredPost<EventName extends keyof Protocol>(
-		millis: number,
-		eventName: EventHandlerName<Protocol, EventName>,
-		...eventPayload: EventHandlerPayload<Protocol, EventName>): void {
+	deferredPost<EventName extends keyof Protocol>(millis: number, eventName: EventHandlerName<Protocol, EventName>, ...eventPayload: EventHandlerPayload<Protocol, EventName>): void {
 		this.hsm.deferredPost(millis, eventName, ...eventPayload);
 	}
 
@@ -279,21 +328,20 @@ export abstract class TopState<Context = Any, Protocol extends {} | undefined = 
 	onEntry(): Promise<void> | void {}
 
 	onError<EventName extends keyof Protocol>(error: RuntimeError<Context, Protocol, EventName>): Promise<void> | void {
-		this.trace(error);
-		this.transition(FatalErrorState);
+		throw error;
 	}
 
 	onUnhandled<EventName extends keyof Protocol>(error: UnhandledEventError<Context, Protocol, EventName>): Promise<void> | void {
-		this.trace(error);
-		this.transition(FatalErrorState);
+		throw error;
 	}
+
 }
 
-export class FatalErrorState<Context, Protocol extends {} | undefined> extends TopState<Context, Protocol> {}
+export class FatalErrorState<Context, Protocol extends {} | undefined> extends BaseTopState<Context, Protocol> {}
 
 // eslint-disable-next-line valid-jsdoc
 /** @internal */
-async function dispatchTraceInit<Context, Protocol extends {} | undefined, EventName extends keyof Protocol>(hsm: HsmObject<Context, Protocol>): Promise<void> {
+async function dispatchInitWithTracing<Context, Protocol extends {} | undefined, EventName extends keyof Protocol>(hsm: HsmObject<Context, Protocol>): Promise<void> {
 	let currState: State<Context, Protocol> = hsm.topState;
 	hsm.logTrace(`begin initialize`);
 	++hsm.traceContextLevel;
@@ -319,14 +367,14 @@ async function dispatchTraceInit<Context, Protocol extends {} | undefined, Event
 		--hsm.traceContextLevel;
 		hsm.currentState = currState;
 		hsm.logTrace(`end initialize`);
-		hsm.logDebug(`initialized from state '${hsm.topState.name}'`);
+		hsm.logDebug(`initialized from state top state '${hsm.topState.name}' to state '${hsm.currentStateName}'`);
 	} catch (err) {
 		hsm.logTrace(`error #onEntry '${currState.name}'`);
 		--hsm.traceContextLevel;
 		hsm.logTrace(`end initialize`);
 		hsm.currentState = FatalErrorState;
-		hsm.logDebug(`initialized from state '${hsm.topState.name} in state ${currState.name}; final state is 'FatalErrorState'`);
-		hsm.logError(err);
+		hsm.logDebug(`fatal error: initialization failed from top state '${hsm.topState.name}' in state '${currState.name}': #onEntry handler has raised ${err.name}${err.message ? `: ${err.message}` : ' with no error message'}; final state is '${hsm.currentStateName}'`);
+		throw err;
 	}
 }
 
@@ -348,9 +396,9 @@ class TraceTransition<Context, Protocol extends {} | undefined, EventName extend
 						const res = statePrototype.onExit.call(hsm);
 						if (res) await res;
 						hsm.logTrace(`post #onExit '${stateName}'`);
-					} catch (e) {
-						hsm.logTrace(`FATAL ERROR! #onExit '${stateName}' has failed`);
-						throw new TransitionError(hsm, e, state, 'onExit', this.srcState, this.dstState);
+					} catch (cause) {
+						hsm.logTrace(`error #onExit '${stateName}' has failed`);
+						throw new TransitionError(hsm, cause, state, 'onExit', this.srcState, this.dstState);
 					}
 				} else {
 					hsm.logTrace(`skip #onExit '${stateName}': default empty implementation`);
@@ -367,9 +415,9 @@ class TraceTransition<Context, Protocol extends {} | undefined, EventName extend
 						const res = statePrototype.onEntry.call(hsm);
 						if (res) await res;
 						hsm.logTrace(`post #onEntry '${stateName}'`);
-					} catch (e) {
+					} catch (cause) {
 						hsm.logTrace(`error #onEntry '${stateName}' has failed`);
-						throw new TransitionError(hsm, e, state, 'onEntry', this.srcState, this.dstState);
+						throw new TransitionError(hsm, cause, state, 'onEntry', this.srcState, this.dstState);
 					}
 				} else {
 					hsm.logTrace(`skip #onEntry '${stateName}': default empty implementation`);
@@ -393,11 +441,11 @@ class TraceTransition<Context, Protocol extends {} | undefined, EventName extend
 
 // eslint-disable-next-line valid-jsdoc
 /** @internal */
-function getTraceTransition<Context, Protocol extends {} | undefined, EventName extends keyof Protocol>(srcState: State<Context, Protocol>, destState: State<Context, Protocol>): Transition<Context, Protocol> {
+function getTransitionWithTracing<Context, Protocol extends {} | undefined, EventName extends keyof Protocol>(srcState: State<Context, Protocol>, destState: State<Context, Protocol>): Transition<Context, Protocol> {
 	const src: State<Context, Protocol> = srcState;
 	let dst: State<Context, Protocol> = destState;
 	let srcPath: State<Context, Protocol>[] = [];
-	const end: State<Context, Protocol> = TopState;
+	const end: State<Context, Protocol> = BaseTopState;
 	const srcIndex: Map<State<Context, Protocol>, number> = new Map();
 	const dstPath: State<Context, Context>[] = [];
 	let cur: State<Context, Context> = src;
@@ -429,7 +477,7 @@ function getTraceTransition<Context, Protocol extends {} | undefined, EventName 
 	return new TraceTransition<Context, Protocol, EventName>(srcPath, dstPath, srcState, destState);
 }
 
-async function doTransition<Context, Protocol extends {} | undefined>(hsm: HsmObject<Context, Protocol>): Promise<void> {
+async function doTransitionWithTracing<Context, Protocol extends {} | undefined>(hsm: HsmObject<Context, Protocol>): Promise<void> {
 	try {
 		if (hsm.transitionState) {
 			const srcState = hsm.currentState;
@@ -437,17 +485,17 @@ async function doTransition<Context, Protocol extends {} | undefined>(hsm: HsmOb
 			hsm.logTrace(`requested transition to from '${srcState.name}' to '${destState.name}'`);
 			let tr: Transition<Context, Protocol> | undefined = hsm.transitionCache.get([srcState, destState]);
 			if (!tr) {
-				tr = getTraceTransition(hsm.currentState, destState);
+				tr = getTransitionWithTracing(hsm.currentState, destState);
 				hsm.transitionCache.set([hsm.currentState, destState], tr);
 			}
 			try {
 				hsm.logTrace(`begin transition`);
 				await tr.execute(hsm);
 				hsm.logTrace(`end transition`);
-				hsm.logDebug(`Transition from '${srcState.name}' to '${destState.name}' done; final state ${hsm.currentState.name}`);
+				hsm.logDebug(`Transition from '${srcState.name}' to '${destState.name}' done; final state is '${hsm.currentState.name}'`);
 			} catch (transitionError) {
 				hsm.currentState = FatalErrorState;
-				hsm.logDebug(`Transition from '${srcState.name}' to '${destState.name}' failed; final state ${hsm.currentState.name}`);
+				hsm.logDebug(`Transition from '${srcState.name}' to '${destState.name}' failed in ${transitionError.failedState.name}.${transitionError.failedCallback}(); final state is '${hsm.currentState.name}'`);
 				throw transitionError;
 			}
 		} else {
@@ -458,7 +506,7 @@ async function doTransition<Context, Protocol extends {} | undefined>(hsm: HsmOb
 	}
 }
 
-function getTraceErrorHandlerLookup<Context, Protocol extends {} | undefined, EventName extends keyof Protocol>(hsm: HsmObject<Context, Protocol>): (error: RuntimeError<Context, Protocol, EventName>) => Promise<void> | void {
+function lookupErrorHandlerWithTracing<Context, Protocol extends {} | undefined, EventName extends keyof Protocol>(hsm: HsmObject<Context, Protocol>): (error: RuntimeError<Context, Protocol, EventName>) => Promise<void> | void {
 	let state = hsm.currentState;
 	hsm.logTrace(`begin lookup of #onError`);
 	++hsm.traceContextLevel;
@@ -472,42 +520,46 @@ function getTraceErrorHandlerLookup<Context, Protocol extends {} | undefined, Ev
 			return prototype['onError'];
 		} else {
 			hsm.logTrace(`not found in state '${prototype.constructor.name}'`);
-			if (state == TopState) break;
+			if (state == BaseTopState) break;
 			state = Object.getPrototypeOf(state);
 		}
 	}
 	throw new Error('Illegal state');
 }
 
-async function doTraceError<Context, Protocol extends {} | undefined, EventName extends keyof Protocol>(hsm: HsmObject<Context, Protocol>, eventName: EventHandlerName<Protocol, EventName>, err: Error): Promise<void> {
+async function doErrorWithTracing<Context, Protocol extends {} | undefined, EventName extends keyof Protocol>(hsm: HsmObject<Context, Protocol>, err: Error): Promise<void> {
 	hsm.logTrace('begin error recovery');
 	++hsm.traceContextLevel;
+
+	const errorHandler = lookupErrorHandlerWithTracing<Context, Protocol, EventName>(hsm);
 	try {
-		const errorHandler = getTraceErrorHandlerLookup<Context, Protocol, EventName>(hsm);
-		try {
-			hsm.logTrace(`pre #onError handler`);
-			const dispatchResult = errorHandler.call(hsm.instance, new EventHandlerError(hsm, err));
-			if (dispatchResult) await dispatchResult;
-			hsm.logTrace(`post #onError handler`);
-		} catch (err) {
-			hsm.currentState = FatalErrorState;
-			hsm.logTrace(`error #onError handler has raised ${err.name}: ${err.message}; final state is '${FatalErrorState.name}'`);
-			hsm.logError(err);
-		}
-		// Execute Transition
-		try {
-			await doTransition(hsm);
-		} catch (transitionError) {
-			hsm.logError(transitionError);
-		}
-	} finally {
+		// Execute call
+		hsm.logTrace(`pre #onError handler`);
+		const dispatchResult = errorHandler.call(hsm.instance, new EventHandlerError(hsm, err));
+		if (dispatchResult) await dispatchResult;
+		hsm.logTrace(`post #onError handler`);
+	} catch (error) {
+		hsm.currentState = FatalErrorState;
+		hsm.logDebug(`fatal error: #onError handler has raised ${error.name}${error.message ? `: ${error.message}` : ' with no error message'}; final state is '${FatalErrorState.name}'`);
 		--hsm.traceContextLevel;
 		hsm.logTrace('end error recovery');
-		hsm.logTrace(`error recovery done: #${eventName} event handler has raised ${err.name}${err.message ? ': ' + err.message : ' with no error message'}`);
+		throw error;
+	}
+	// Execute Transition
+	try {
+		await doTransitionWithTracing(hsm);
+		hsm.logDebug('recovery successful');
+		--hsm.traceContextLevel;
+		hsm.logTrace('end error recovery');
+	} catch (transitionError) {
+		hsm.logDebug(`fatal error: #onError handler has raised ${transitionError.name}${transitionError.message ? `: ${transitionError.message}` : ' with no error message'}; final state is '${FatalErrorState.name}'`);
+		--hsm.traceContextLevel;
+		hsm.logTrace('end error recovery');
+		throw transitionError;
 	}
 }
 
-function getTraceOnUnhandledEventHandler<Context, Protocol extends {} | undefined, EventName extends keyof Protocol>(hsm: HsmObject<Context, Protocol>): (error: UnhandledEventError<Context, Protocol, EventName>) => Promise<void> | void {
+function lookupUnhandledWithTracing<Context, Protocol extends {} | undefined, EventName extends keyof Protocol>(hsm: HsmObject<Context, Protocol>): (error: UnhandledEventError<Context, Protocol, EventName>) => Promise<void> | void {
 	let state = hsm.currentState;
 	hsm.logTrace(`begin lookup of #onUnhandled`);
 	++hsm.traceContextLevel;
@@ -521,54 +573,29 @@ function getTraceOnUnhandledEventHandler<Context, Protocol extends {} | undefine
 			return prototype['onUnhandled'];
 		} else {
 			hsm.logTrace(`not found in state '${prototype.constructor.name}'`);
-			if (state == TopState) break;
+			if (state == BaseTopState) break;
 			state = Object.getPrototypeOf(state);
 		}
 	}
 	throw new Error('Illegal state');
 }
 
-async function doTraceUnhandledEventCall<Context, Protocol extends {} | undefined, EventName extends keyof Protocol>(hsm: HsmObject<Context, Protocol>, error: UnhandledEventError<Context, Protocol, EventName>): Promise<void> {
+async function doUnhandledEventWithTracing<Context, Protocol extends {} | undefined, EventName extends keyof Protocol>(hsm: HsmObject<Context, Protocol>, error: UnhandledEventError<Context, Protocol, EventName>): Promise<void> {
 	try {
 		hsm.logTrace(`using #onUnhandled as event handler for #${error.eventName}`);
-		const onUnhandledEventHandler = getTraceOnUnhandledEventHandler<Context, Protocol, EventName>(hsm);
+		const onUnhandledEventHandler = lookupUnhandledWithTracing<Context, Protocol, EventName>(hsm);
 		hsm.logTrace(`pre #onUnhandled event handler`);
 		const result = onUnhandledEventHandler.call(hsm.instance, error);
 		if (result) await result;
 		hsm.logTrace(`post #onUnhandled event handler`);
-		try {
-			await doTransition(hsm);
-		} catch (transitionError) {
-			hsm.logError(transitionError);
-		}
+		await doTransitionWithTracing(hsm);
 	} catch (err) {
-		await doTraceError(hsm, error.eventName, err);
+		hsm.logDebug(`#onUnhandled handler has raised ${err.name}${err.message ? `: ${err.message}` : ' with no error message'}`);
+		await doErrorWithTracing(hsm, err);
 	}
 }
 
-async function doTraceMessageHandlerCall<Context, Protocol extends {} | undefined, EventName extends keyof Protocol>(hsm: HsmObject<Context, Protocol>, messageHandler: (...payload: EventHandlerPayload<Protocol, EventName>) => Promise<void> | void, eventName: EventHandlerName<Protocol, EventName>, eventPayload: EventHandlerPayload<Protocol, EventName>): Promise<void> {
-	try {
-		hsm.logTrace(`pre #${eventName} event handler`);
-		const result = messageHandler.call(hsm.instance, ...eventPayload);
-		if (result) await result;
-		hsm.logTrace(`post #${eventName} event handler`);
-		try {
-			await doTransition(hsm);
-		} catch (transitionError) {
-			hsm.logError(transitionError);
-		}
-	} catch (err) {
-		if (err instanceof UnhandledEventError) {
-			hsm.logTrace(`error #${eventName} event handler has signalled that the event is unhandled`);
-			await doTraceUnhandledEventCall(hsm, err);
-		} else {
-			hsm.logTrace(`error #${eventName} has raised ${err.name}${err.message ? `: ${err.message}` : ' with no error message'}`);
-			await doTraceError(hsm, eventName, err);
-		}
-	}
-}
-
-function doTraceHandlerLookup<Context, Protocol extends {} | undefined, EventName extends keyof Protocol>(hsm: HsmObject<Context, Protocol>, eventName: EventHandlerName<Protocol, EventName>): ((...args: EventHandlerPayload<Protocol, EventName>) => Promise<void> | void) | undefined {
+function lookupEventHandlerWithTracing<Context, Protocol extends {} | undefined, EventName extends keyof Protocol>(hsm: HsmObject<Context, Protocol>, eventName: EventHandlerName<Protocol, EventName>): ((...args: EventHandlerPayload<Protocol, EventName>) => Promise<void> | void) | undefined {
 	let state = hsm.currentState;
 	hsm.logTrace(`begin #${eventName} lookup`);
 	++hsm.traceContextLevel;
@@ -582,7 +609,7 @@ function doTraceHandlerLookup<Context, Protocol extends {} | undefined, EventNam
 			return prototype[eventName];
 		} else {
 			hsm.logTrace(`not found in state '${prototype.constructor.name}'`);
-			if (state == TopState) break;
+			if (state == BaseTopState) break;
 			state = Object.getPrototypeOf(state);
 		}
 	}
@@ -594,21 +621,32 @@ function doTraceHandlerLookup<Context, Protocol extends {} | undefined, EventNam
 
 // eslint-disable-next-line valid-jsdoc
 /** @internal */
-async function traceDispatch<Context, Protocol extends {} | undefined, EventName extends keyof Protocol>(hsm: HsmObject<Context, Protocol>, eventName: EventHandlerName<Protocol, EventName>, ...eventPayload: EventHandlerPayload<Protocol, EventName>): Promise<void> {
-	if (hsm.currentEventName !== undefined) {
-		throw new Error('Fatal dispatch error: the RTC condition has been violated; please post an issue');
-	}
+async function dispatchEventWithTracing<Context, Protocol extends {} | undefined, EventName extends keyof Protocol>(hsm: HsmObject<Context, Protocol>, eventName: EventHandlerName<Protocol, EventName>, ...eventPayload: EventHandlerPayload<Protocol, EventName>): Promise<void> {
 	hsm.logDebug(`dispatch of #${eventName}`);
 	try {
 		hsm.logTrace(`begin dispatch`);
 		hsm.currentEventName = eventName as string;
 		hsm.currentEventPayload = eventPayload;
 		++hsm.traceContextLevel;
-		const messageHandler = doTraceHandlerLookup(hsm, eventName);
+		const messageHandler = lookupEventHandlerWithTracing(hsm, eventName);
 		if (!messageHandler) {
-			await doTraceUnhandledEventCall(hsm, new UnhandledEventError(hsm));
+			await doUnhandledEventWithTracing(hsm, new UnhandledEventError(hsm));
 		} else {
-			await doTraceMessageHandlerCall(hsm, messageHandler, eventName, eventPayload);
+			try {
+				hsm.logTrace(`pre #${eventName} event handler`);
+				const result = messageHandler.call(hsm.instance, ...eventPayload);
+				if (result) await result;
+				hsm.logTrace(`post #${eventName} event handler`);
+				await doTransitionWithTracing(hsm);
+			} catch (err) {
+				if (err instanceof UnhandledEventError) {
+					hsm.logTrace(`error #${eventName} event handler has signalled that the event is unhandled`);
+					await doUnhandledEventWithTracing(hsm, err);
+				} else {
+					hsm.logDebug(`error #${eventName} has raised ${err.name}${err.message ? `: ${err.message}` : ' with no error message'}`);
+					await doErrorWithTracing(hsm, err);
+				}
+			}
 		}
 	} finally {
 		--hsm.traceContextLevel;
@@ -619,12 +657,14 @@ async function traceDispatch<Context, Protocol extends {} | undefined, EventName
 	}
 }
 
+export type DispatchErrorCallback<Context, Protocol extends {} | undefined> = (hsm: Hsm<Context, Protocol>, traceWriter: TraceWriter, err: Error) => void;
+
 /** @internal */
 // prettier-ignore
 class HsmObject<Context, Protocol extends {} | undefined> implements Hsm<Context, Protocol>, StateBoundHsm<Context, Protocol> {
 	public static instanceId = 9999999;
 
-	public readonly id: number;
+	public id: number;
 	public topState: State<Context, Protocol>;
 	public topStateName: string;
 	public readonly ctxTypeName: string;
@@ -638,10 +678,10 @@ class HsmObject<Context, Protocol extends {} | undefined> implements Hsm<Context
 	public traceWriter: TraceWriter;
 	public currentEventName?: string;
 	public currentEventPayload?: any[];
-
+	public dispatchErrorCallback: DispatchErrorCallback<Context, Protocol>;
 	public traceLevel: TraceLevel;
 
-	constructor(TopState: State<Context, Protocol>, instance: HsmInstance<Context, Protocol>, traceWriter: TraceWriter, traceLevel: TraceLevel) {
+	constructor(TopState: State<Context, Protocol>, instance: HsmInstance<Context, Protocol>, traceWriter: TraceWriter, traceLevel: TraceLevel, dispatchErrorCallback: DispatchErrorCallback<Context, Protocol>) {
 		this.id = ++HsmObject.instanceId;
 		this.instance = instance;
 		this.ctx = instance.ctx;
@@ -658,46 +698,42 @@ class HsmObject<Context, Protocol extends {} | undefined> implements Hsm<Context
 		this.traceLevel = traceLevel;
 		this.currentEventName = undefined;
 		this.currentEventPayload = undefined;
+		this.dispatchErrorCallback = dispatchErrorCallback;
 	}
 
 	// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-	get eventName(): string { return this.currentEventName! }
+	get eventName(): string { return this.currentEventName!; }
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any,@typescript-eslint/no-non-null-assertion
-	get eventPayload(): any[] { return this.currentEventPayload! }
+	get eventPayload(): any[] { return this.currentEventPayload!; }
 
-	get currentStateName(): string { return Object.getPrototypeOf(this.instance).constructor.name }
+	get currentStateName(): string { return Object.getPrototypeOf(this.instance).constructor.name; }
 
-	get traceHeader(): string { return `${this.ctxTypeName}|${this.id}|${' '.repeat(this.traceContextLevel * 4)}${this.currentStateName}` }
+	get traceHeader(): string {
+		return `${this.ctxTypeName}|${this.id}|${' '.repeat(this.traceContextLevel * 4)}${this.currentStateName}`;
+	}
 
-	get currentState(): State<Context, Protocol> { return Object.getPrototypeOf(this.instance).constructor }
+	get currentState(): State<Context, Protocol> { return Object.getPrototypeOf(this.instance).constructor; }
 
-	set currentState(newState: State<Context, Protocol>) { Object.setPrototypeOf(this.instance, newState.prototype) }
+	set currentState(newState: State<Context, Protocol>) { Object.setPrototypeOf(this.instance, newState.prototype); }
 
-	logTrace(msg: string): void { if (this.traceLevel == TraceLevel.ALL) this.traceWriter.write(this, msg) }
+	logTrace(msg: string): void { this.traceWriter.writeTrace(this,TraceLevel.TRACE, msg) }
 
-	logDebug(msg: string): void { if (this.traceLevel > 0) this.traceWriter.write(this, msg) }
+	logDebug(msg: string): void { this.traceWriter.writeTrace(this,TraceLevel.DEBUG, msg)  }
 
-	logError(err: Error): void { this.traceWriter.write(this, err) }
+	logError(err: Error): void { this.traceWriter.write(this, err); }
 
-	trace(msg: any): void { this.traceWriter.write(this, msg) }
+	trace(msg: any): void { this.traceWriter.write(this, msg); }
 
 	//
 	// Event Send
 	//
-	post<EventName extends keyof Protocol>(
-		eventName: EventHandlerName<Protocol, EventName>,
-		...eventPayload: EventHandlerPayload<Protocol, EventName>
-	): void {
-		this.pushTask(this.createPostTask(eventName, ...eventPayload));
+	post<EventName extends keyof Protocol>(eventName: EventHandlerName<Protocol, EventName>, ...eventPayload: EventHandlerPayload<Protocol, EventName>): void {
+		this.pushTask(this.createEventDispatchTask(eventName, ...eventPayload));
 	}
 
-	deferredPost<EventName extends keyof Protocol>(
-		millis: number,
-		eventName: EventHandlerName<Protocol, EventName>,
-		...eventPayload: EventHandlerPayload<Protocol, EventName>
-	): void {
-		setTimeout(() => this.pushTask(this.createPostTask(eventName, ...eventPayload)), millis);
+	deferredPost<EventName extends keyof Protocol>(millis: number, eventName: EventHandlerName<Protocol, EventName>, ...eventPayload: EventHandlerPayload<Protocol, EventName>): void {
+		setTimeout(() => this.pushTask(this.createEventDispatchTask(eventName, ...eventPayload)), millis);
 	}
 
 	sync(): Promise<void> {
@@ -711,11 +747,11 @@ class HsmObject<Context, Protocol extends {} | undefined> implements Hsm<Context
 		});
 	}
 
-	transition(nextState: State<Context, Protocol>): void { this.transitionState = nextState }
+	transition(nextState: State<Context, Protocol>): void { this.transitionState = nextState; }
 
-	unhandled(): never { throw new UnhandledEventError(this) }
+	unhandled(): never { throw new UnhandledEventError(this); }
 
-	sleep(millis: number): Promise<void> { return new Promise(resolve => setTimeout(() => resolve(), millis)) }
+	sleep(millis: number): Promise<void> { return new Promise(resolve => setTimeout(() => resolve(), millis)); }
 
 	public pushTask(t: (done: () => void) => void): void {
 		this.jobs.push(t);
@@ -724,21 +760,31 @@ class HsmObject<Context, Protocol extends {} | undefined> implements Hsm<Context
 		this.dequeue();
 	}
 
-	public postInitTask(): this {
-		this.pushTask((doneCallback: () => void) =>
-			dispatchTraceInit(this)
-				.catch(err => this.logError(err))
-				.finally(() => doneCallback()));
-		return this;
+	restore(topState: State<Context, Protocol>, state: State<Context, Protocol>, ctx: Context, options?: Options): void {
+		if (!Object.prototype.isPrototypeOf.call(topState, state)) {
+			throw new Error('state must inherit from topState');
+		}
+		this.topState = topState;
+		this.currentState = state;
+		this.instance.ctx = ctx;
+		this.ctx = ctx;
+		if (options) {
+			this.traceWriter = options.traceWriter;
+			this.traceLevel = options.traceLevel;
+			this.dispatchErrorCallback = options.dispatchErrorCallback;
+		}
+		if (topState !== this.topState) {
+			this.transitionCache = new Map();
+		}
 	}
 
-	private createPostTask<EventName extends keyof Protocol>(eventName: EventHandlerName<Protocol, EventName>, ...eventPayload: EventHandlerPayload<Protocol, EventName>): Task {
-		return (doneCallback: () => void): void => {
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			traceDispatch(this, eventName, ...eventPayload)
-				.catch((err: Error) => this.logError(err))
-				.finally(() => doneCallback());
-		};
+	public createInitDispatchTask(): this {
+		this.pushTask((doneCallback: () => void) => dispatchInitWithTracing(this)
+		.catch((err: Error) => {
+			this.dispatchErrorCallback(this, this.traceWriter, err);
+		})
+		.finally(() => doneCallback()));
+		return this;
 	}
 
 	private dequeue(): void {
@@ -753,37 +799,49 @@ class HsmObject<Context, Protocol extends {} | undefined> implements Hsm<Context
 
 	private exec(task: Task): void {
 		setTimeout(() => Promise.resolve()
-			.then(() => new Promise<void>((resolve: () => void) => task(resolve)))
-			.then(() => this.dequeue()), 0);
+		.then(() => new Promise<void>((resolve: () => void) => task(resolve)))
+		.then(() => this.dequeue()), 0);
 	}
 
-	restore(topState: State<Context, Protocol>, state: State<Context, Protocol>, ctx: Context, clearCache = true): void {
-		this.topState = topState;
-		this.currentState = state;
-		this.instance.ctx = ctx;
-		this.ctx = ctx;
-		if (clearCache) {
-			this.transitionCache = new Map();
-		}
+	private createEventDispatchTask<EventName extends keyof Protocol>(eventName: EventHandlerName<Protocol, EventName>, ...eventPayload: EventHandlerPayload<Protocol, EventName>): Task {
+		return (doneCallback: () => void): void => {
+			dispatchEventWithTracing(this, eventName, ...eventPayload)
+			.catch((err: Error) => {
+				this.dispatchErrorCallback(this, this.traceWriter, err);
+			})
+			.finally(() => doneCallback());
+		};
 	}
+
 }
 
 /** @internal */
-let defaultCreateOptions: CreateOptions = { traceLevel: TraceLevel.NONE, TraceWriterFactory: ConsoleTraceWriter };
+const defaultTraceWriter = new ConsoleTraceWriter();
+/** @internal */
+let defaultCreateOptions: Options = {
+	traceLevel: TraceLevel.NONE,
+	traceWriter: defaultTraceWriter,
+	dispatchErrorCallback: defaultDispatchErrorCallback,
+};
 
 /**
  * Used to configureHsm the default _options_ object used when executing the {@link create} or {@link create} functions.
  *
- * @param {CreateOptions} options the new default options object
+ * @param {HsmOptions} options the new default options object
  * @category Configuration
  */
 export function configureHsm(
-	options: CreateOptions = {
+	options: Options = {
 		traceLevel: TraceLevel.NONE,
-		TraceWriterFactory: ConsoleTraceWriter,
+		traceWriter: defaultTraceWriter,
+		dispatchErrorCallback: defaultDispatchErrorCallback,
 	}
 ): void {
-	defaultCreateOptions = { traceLevel: options.traceLevel, TraceWriterFactory: options.TraceWriterFactory };
+	defaultCreateOptions = {
+		traceLevel: options.traceLevel,
+		traceWriter: options.traceWriter,
+		dispatchErrorCallback: options.dispatchErrorCallback,
+	};
 }
 
 /**
@@ -792,37 +850,41 @@ export function configureHsm(
  * @category Configuration
  */
 // prettier-ignore
-export function configureHsmTraceLevel(traceLevel: TraceLevel = TraceLevel.NONE): void { defaultCreateOptions.traceLevel = traceLevel }
+export function configureTraceLevel(traceLevel: TraceLevel = TraceLevel.NONE): void { defaultCreateOptions.traceLevel = traceLevel; }
 
 // eslint-disable-next-line valid-jsdoc
 /**
  * todo
- * @param {{new(): TraceWriter}} traceWriterFactory
+ * @param {{new(): TraceWriter}} traceWriter
  * @category Configuration
  */
 // prettier-ignore
-export function configureHsmTraceWriter(traceWriterFactory: new () => TraceWriter = ConsoleTraceWriter): void { defaultCreateOptions.TraceWriterFactory = traceWriterFactory }
+export function configureTraceWriter(traceWriter: TraceWriter = defaultTraceWriter): void { defaultCreateOptions.traceWriter = traceWriter; }
+
+// prettier-ignore
+export function configureDispatchErrorCallback<Context, Protocol extends {} | undefined>(dispatchErrorCallback: <Context, Protocol extends {} | undefined>(hsm: Hsm<Context, Protocol>, traceWriter: TraceWriter, err: Error) => void = defaultDispatchErrorCallback): void {
+	defaultCreateOptions.dispatchErrorCallback = dispatchErrorCallback;
+}
 
 /**
  *
  * @param {State<Context, Protocol>} topState
  * @param {Context} ctx
  * @param {boolean} start
- * @param {CreateOptions} options
+ * @param {HsmOptions} options
  * @return {Hsm<Context, Protocol>}
- * @category TopState machine factory
+ * @category BaseTopState machine factory
  */
-export function create<Context, Protocol extends {} | undefined, EventName extends keyof Protocol>(topState: State<Context, Protocol>, ctx: Context, start = true, options?: CreateOptions): Hsm<Context, Protocol> {
+export function create<Context, Protocol extends {} | undefined, EventName extends keyof Protocol>(topState: State<Context, Protocol>, ctx: Context, start = true, options?: Options): Hsm<Context, Protocol> {
 	const userOptions = options ? options : defaultCreateOptions;
 	const instance: HsmInstance<Context, Protocol> = {
 		hsm: (undefined as unknown) as HsmObject<Context, Protocol>,
 		ctx: ctx,
 	};
 	Object.setPrototypeOf(instance, topState.prototype);
-	const traceWriter = new userOptions.TraceWriterFactory();
-	instance.hsm = new HsmObject(topState, instance, traceWriter, userOptions.traceLevel);
+	instance.hsm = new HsmObject(topState, instance, userOptions.traceWriter, userOptions.traceLevel, userOptions.dispatchErrorCallback);
 	if (start) {
-		instance.hsm.postInitTask();
+		instance.hsm.createInitDispatchTask();
 	}
 	return instance.hsm;
 }

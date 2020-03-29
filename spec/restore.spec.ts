@@ -1,9 +1,11 @@
 import { expect } from 'chai';
 import 'mocha';
 import * as ihsm from '../src/index';
-import { TRACE_LEVELS } from './trace.setup';
+import { TRACE_LEVELS } from './spec.utils';
+import { createTestDispatchErrorCallback } from './spec.utils';
+ihsm.configureDispatchErrorCallback(createTestDispatchErrorCallback());
 
-class TopState extends ihsm.TopState {
+class TopState extends ihsm.BaseTopState {
 	getValue(obj: { value: string }) {
 		obj.value = this.ctx.value;
 	}
@@ -16,13 +18,13 @@ class B extends A {}
 class C extends TopState {}
 
 for (const traceLevel of TRACE_LEVELS) {
-	describe(`Initialization failure (traceLevel = ${traceLevel})`, () => {
+	describe(`Restore (traceLevel = ${traceLevel})`, () => {
 		beforeEach(async () => {
 			console.log(`Current trace level: ${traceLevel as ihsm.TraceLevel}`);
-			ihsm.configureHsmTraceLevel(traceLevel as ihsm.TraceLevel);
+			ihsm.configureTraceLevel(traceLevel as ihsm.TraceLevel);
 		});
 
-		it(`restore sets the current state and the current context`, async () => {
+		it(`sets the current state and the current context`, async () => {
 			let initial = { value: 'initial' };
 			let first = { value: 'first' };
 			let second = { value: 'second' };
@@ -40,7 +42,7 @@ for (const traceLevel of TRACE_LEVELS) {
 			expect(query.value).equals(first.value);
 			expect(hsm.currentState).equals(B);
 
-			hsm.restore(TopState, C, second, false);
+			hsm.restore(TopState, C, second);
 			hsm.post('getValue', query);
 			await hsm.sync();
 			expect(query.value).equals(second.value);

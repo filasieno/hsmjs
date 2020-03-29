@@ -10,18 +10,16 @@ class Data {
 	msg!: string;
 }
 
-class TopState extends ihsm.TopState<Data, Protocol> {
+class TopState extends ihsm.BaseTopState<Data, Protocol> {
 	onEntry(): void {
 		this.ctx.msg = 'initial message';
 	}
 
 	writeMessage(): void {
-		this.trace(`${this.ctx.msg}`);
 		this.transition(B);
 	}
 
 	asyncWriteMessage(): void {
-		this.trace(`${this.ctx.msg}`);
 		this.transition(A);
 	}
 	setMessage(msg: string): void {
@@ -35,7 +33,7 @@ class A extends TopState {}
 class B extends TopState {}
 
 async function main(): Promise<void> {
-	ihsm.configureHsmTraceLevel(ihsm.TraceLevel.ALL);
+	ihsm.configureTraceLevel(ihsm.TraceLevel.TRACE);
 	const hsm = ihsm.create(TopState, new Data(), true);
 	await hsm.sync();
 	console.log(`>> main: current state name: ${hsm.currentStateName}`);

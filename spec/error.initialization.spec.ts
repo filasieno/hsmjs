@@ -1,9 +1,10 @@
 import { expect } from 'chai';
 import 'mocha';
 import * as ihsm from '../src/index';
-import { TRACE_LEVELS } from './trace.setup';
+import { TRACE_LEVELS } from './spec.utils';
+import { createTestDispatchErrorCallback } from './spec.utils';
 
-class TopState extends ihsm.TopState {}
+class TopState extends ihsm.BaseTopState {}
 @ihsm.initialState
 class A extends TopState {}
 @ihsm.initialState
@@ -19,7 +20,8 @@ for (const traceLevel of TRACE_LEVELS) {
 
 		beforeEach(async () => {
 			console.log(`Current trace level: ${traceLevel as ihsm.TraceLevel}`);
-			ihsm.configureHsmTraceLevel(traceLevel as ihsm.TraceLevel);
+			ihsm.configureTraceLevel(traceLevel as ihsm.TraceLevel);
+			ihsm.configureDispatchErrorCallback(createTestDispatchErrorCallback(true));
 		});
 
 		it(`moves the state machine to FatalErrorState`, async () => {

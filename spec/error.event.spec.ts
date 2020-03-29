@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import 'mocha';
 import * as ihsm from '../src/index';
-import { TRACE_LEVELS } from './trace.setup';
+import { createTestDispatchErrorCallback, TRACE_LEVELS } from './spec.utils';
 
 interface Protocol {
 	executeWithError01(): void;
@@ -9,7 +9,7 @@ interface Protocol {
 	executeWithError03(): void;
 	transitionTo(s: ihsm.State<ihsm.Any, Protocol>): void;
 }
-class TopState extends ihsm.TopState<ihsm.Any, Protocol> {
+class TopState extends ihsm.BaseTopState<ihsm.Any, Protocol> {
 	transitionTo(s: ihsm.State<ihsm.Any, Protocol>): void {
 		this.transition(s);
 	}
@@ -47,13 +47,14 @@ class Recovery extends TopState {
 class B extends Recovery {}
 
 for (const traceLevel of TRACE_LEVELS) {
-	describe(`A message handler throws an error (traceLevel = ${traceLevel})`, function(): void {
+	describe(`Error event (traceLevel = ${traceLevel})`, function(): void {
 		let sm: ihsm.Hsm<Record<string, any>, Protocol>;
 
 		beforeEach(async () => {
 			console.log(`Current trace level: ${traceLevel}`);
-			ihsm.configureHsmTraceLevel(traceLevel);
-			sm = ihsm.create(Recovery, {});
+			ihsm.configureDispatchErrorCallback(createTestDispatchErrorCallback(true));
+			ihsm.configureTraceLevel(traceLevel);
+			sm = ihsm.create(TopState, {});
 			await sm.sync();
 		});
 

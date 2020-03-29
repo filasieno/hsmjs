@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import 'mocha';
-import { TRACE_LEVELS } from './trace.setup';
+import { TRACE_LEVELS } from './spec.utils';
 import * as ihsm from '../src/index';
 
 type Cons = new () => TopState;
@@ -15,7 +15,7 @@ interface Protocol {
 	clear(): void;
 }
 
-class TopState extends ihsm.TopState<TransitionTrace, Protocol> implements Protocol {
+class TopState extends ihsm.BaseTopState<TransitionTrace, Protocol> implements Protocol {
 	transitionTo(s: Cons): void {
 		this.clear();
 		this.transition(s);
@@ -167,12 +167,12 @@ class C1111 extends C111 {
 }
 
 for (const traceLevel of TRACE_LEVELS) {
-	describe(`transition (traceLevel = ${traceLevel})`, function() {
+	describe(`Transition (traceLevel = ${traceLevel})`, function() {
 		let ctx: TransitionTrace;
 		let sm: ihsm.Hsm<TransitionTrace, Protocol>;
 		beforeEach(async () => {
 			console.log(`Current trace level: ${traceLevel as ihsm.TraceLevel}`);
-			ihsm.configureHsmTraceLevel(traceLevel as ihsm.TraceLevel);
+			ihsm.configureTraceLevel(traceLevel as ihsm.TraceLevel);
 			ctx = new TransitionTrace();
 			sm = ihsm.create(TopState, ctx);
 			await sm.sync();
