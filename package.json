@@ -58,7 +58,7 @@
 	"scripts": {
 		"build-browser": "tsc --build tsconfig.browser.json",
 		"build-node": "tsc --build tsconfig.json",
-		"clean": "rm -rf ./lib/ ./src/index.js ./src/index.js.map ./src/index.browser.js ./.tsc",
+		"clean": "rm -rf ./lib ./.tsc ./.nyc_output ./coverage ./src/*.js ./src/*.d.ts ./src/*.js.map ./src/examples/*.js ./src/examples/*.d.ts ./src/examples/*.js.map ./spec/*.js ./spec/*.d.ts ./spec/*.js.map",
 		"dist-examples": "mkdir -p ./lib/examples && cp ./src/examples/*.ts ./lib/examples",
 		"dist": "npm run dist-browser && npm run dist-node && npm run dist-examples && npm run doc",
 		"dist-browser": "mkdir -p ./lib && cp ./src/index.js ./lib/index.browser.js && cp ./src/index.d.ts ./lib/index.d.ts",
