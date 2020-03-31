@@ -33,7 +33,7 @@
         "noImplicitReturns": true,
         "noFallthroughCasesInSwitch": true,
         "importHelpers": false,
-        "baseUrl": "./dump/old/src",
+        "baseUrl": ".",
         "paths": {
             "*": [
                 "*"
@@ -44,32 +44,25 @@
             "dom"
         ],
         "rootDirs": [
-            ".src/",
-            ".spec/"
+            "./src",
+            "./spec"
         ],
         // "typeRoots": [],
-        //"types": [],
-        "allowSyntheticDefaultImports": true,
-        // Allow default imports from modules with no default export. This does not affect code emit, just typechecking
-        "esModuleInterop": true,
-        // Enables emit interoperability between CommonJS and ES Modules via creation of namespace objects for ALL imports. Implies 'allowSyntheticDefaultImports'.
+        // "types": [],
+        "allowSyntheticDefaultImports": true,     // Allow default imports from modules with no default export. This does not affect code emit, just typechecking
+        "esModuleInterop": true,                  // Enables emit interoperability between CommonJS and ES Modules via creation of namespace objects for ALL imports. Implies 'allowSyntheticDefaultImports'.
         // "preserveSymlinks": true,              // Do not resolve the real path of symlinks.
         // "allowUmdGlobalAccess": true,          // Allow accessing UMD globals from modules.
-        //"sourceRoot": "./src",                  // Specify the location where debugger should locate TypeScript files instead of source locations.
-        //"mapRoot": "../.map",                   // Specify the location where debugger should locate map files instead of generated locations.
+        // "sourceRoot": "./src",                 // Specify the location where debugger should locate TypeScript files instead of source locations.
+        // "mapRoot": "../.map",                  // Specify the location where debugger should locate map files instead of generated locations.
         // "inlineSourceMap": true,               // Emit a single file with source maps instead of having a separate file.
         // "inlineSources": true,                 // Emit the source alongside the sourcemaps within a single file; requires '--inlineSourceMap' or '--sourceMap' to be set.
-        "experimentalDecorators": true,
-        // Experimental CreateOptions
+        "experimentalDecorators": true,           // Experimental CreateOptions
         // "emitDecoratorMetadata": true,         // Enables experimental support for emitting type metadata for decorators.
         "forceConsistentCasingInFileNames": true
     },
     "exclude": [
         "./lib",
-        "./dump",
-        "./dump/old/src",
-        "./dump/old/src/example",
-        "./dump/old/src/tutorial",
         "tsconfig-*.js",
         "node_modules"
     ]
