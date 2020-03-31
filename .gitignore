@@ -107,10 +107,9 @@ dist
 .idea
 
 # Build dirs
-lib
-build
-.map
-.types
+/lib
+/build
+/types
 **.map
 
 # Typescript incremental file

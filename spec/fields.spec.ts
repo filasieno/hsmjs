@@ -11,7 +11,6 @@ type State = ihsm.State<Report>;
 class Report {
 	eventName?: string;
 	eventPayload?: any[];
-	traceContextLevel?: number;
 	traceHeader?: string;
 	topState?: State;
 	currentStateName?: string;
@@ -29,7 +28,6 @@ class TopState extends ihsm.BaseTopState<Report> {
 		this.ctx.eventPayload = this.eventPayload;
 		this.ctx.currentState = this.currentState;
 		this.ctx.currentStateName = this.currentStateName;
-		this.ctx.traceContextLevel = this.traceContextLevel;
 		this.ctx.traceHeader = this.traceHeader;
 		this.ctx.topState = this.topState;
 		this.ctx.id = this.id;
@@ -64,7 +62,6 @@ for (const traceLevel of TRACE_LEVELS) {
 			expect(ctx.eventPayload).eqls(['hello world']);
 			expect(ctx.currentState).eq(B);
 			expect(ctx.currentStateName).eq('B');
-			expect(ctx.traceContextLevel).eq(1);
 			// expect(ctx.traceHeader).eq('Report|10000000|    B'); TODO
 			expect(ctx.topState).eq(TopState);
 			expect(ctx.id).eq(10000000);

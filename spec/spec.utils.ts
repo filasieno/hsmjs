@@ -1,9 +1,5 @@
 import { Hsm, TraceLevel, TraceWriter } from '../src/index';
-export const TRACE_LEVELS: TraceLevel[] = [
-	TraceLevel.TRACE,
-	TraceLevel.DEBUG,
-	//	TraceLevel.NONE
-];
+export const TRACE_LEVELS: TraceLevel[] = [TraceLevel.TRACE, TraceLevel.DEBUG, TraceLevel.NONE];
 
 let lastError: Error | undefined = undefined;
 
