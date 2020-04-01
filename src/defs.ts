@@ -1,6 +1,8 @@
 /**
  * @category Event handler
  */
+import { quoteError } from './private/utils';
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type EventHandlerName<Protocol extends {} | undefined, EventName extends keyof Protocol> = Protocol extends undefined ? string : EventName extends keyof StateBoundHsm<any, any> ? never : EventName;
 
@@ -121,32 +123,44 @@ export abstract class BaseTopState<Context = Any, Protocol extends {} | undefine
 	sleep(millis: number): Promise<void> { return this.hsm.sleep(millis); }
 	post<EventName extends keyof Protocol>(eventName: EventHandlerName<Protocol, EventName>, ...eventPayload: EventHandlerPayload<Protocol, EventName>): void { this.hsm.post(eventName, ...eventPayload); }
 	deferredPost<EventName extends keyof Protocol>(millis: number, eventName: EventHandlerName<Protocol, EventName>, ...eventPayload: EventHandlerPayload<Protocol, EventName>): void { this.hsm.deferredPost(millis, eventName, ...eventPayload); }
+
 	// eslint-disable-next-line @typescript-eslint/no-empty-function
 	onExit(): Promise<void> | void {}
+
 	// eslint-disable-next-line @typescript-eslint/no-empty-function
 	onEntry(): Promise<void> | void {}
+
 	onError<EventName extends keyof Protocol>(error: RuntimeError<Context, Protocol, EventName>): Promise<void> | void { throw error; }
+
 	onUnhandled<EventName extends keyof Protocol>(error: UnhandledEventError<Context, Protocol, EventName>): Promise<void> | void { throw error; }
 }
 
 export class FatalErrorState<Context, Protocol extends {} | undefined> extends BaseTopState<Context, Protocol> {}
 
-/**
- * @category Error
- */
-export abstract class RuntimeError<Context, Protocol extends {} | undefined, EventName extends keyof Protocol> extends Error {
-	eventName: EventHandlerName<Protocol, EventName>;
-	eventPayload: EventHandlerPayload<Protocol, EventName>;
+export abstract class HsmError<Context, Protocol extends {} | undefined> extends Error {
+	hsmTopStateName: string;
 	hsmStateName: string;
 	hsmContext: Context;
 
-	protected constructor(errorName: string, hsm: StateBoundHsm<Context, Protocol>, message: string, public cause?: Error) {
+	protected constructor(public name: string, hsm: StateBoundHsm<Context, Protocol>, message: string, public cause?: Error) {
 		super(message);
-		this.name = errorName;
-		this.eventName = hsm.eventName as EventHandlerName<Protocol, EventName>;
-		this.eventPayload = hsm.eventPayload as EventHandlerPayload<Protocol, EventName>;
+		this.hsmTopStateName = hsm.topStateName;
 		this.hsmStateName = hsm.currentState.name;
 		this.hsmContext = hsm.ctx;
+	}
+}
+
+/**
+ * @category Error
+ */
+export abstract class RuntimeError<Context, Protocol extends {} | undefined, EventName extends keyof Protocol> extends HsmError<Context, Protocol> {
+	eventName: EventHandlerName<Protocol, EventName>;
+	eventPayload: EventHandlerPayload<Protocol, EventName>;
+
+	protected constructor(errorName: string, hsm: StateBoundHsm<Context, Protocol>, message: string, cause?: Error) {
+		super(errorName, hsm, message, cause);
+		this.eventName = hsm.eventName as EventHandlerName<Protocol, EventName>;
+		this.eventPayload = hsm.eventPayload as EventHandlerPayload<Protocol, EventName>;
 	}
 }
 
@@ -182,9 +196,28 @@ export class UnhandledEventError<Context, Protocol extends {} | undefined, Event
  */
 export class InitialStateError<Context, Protocol extends {} | undefined> extends Error {
 	targetStateName: string;
+
 	constructor(targetState: State<Context, Protocol>) {
 		super(`State '${Object.getPrototypeOf(targetState).constructor.name}' must not have more than one initial state`);
 		this.name = 'InitialStateError';
 		this.targetStateName = targetState.name;
+	}
+}
+
+/**
+ * @category Error
+ */
+export class RecoveryError<Context, Protocol extends {} | undefined, EventName extends keyof Protocol> extends RuntimeError<Context, Protocol, EventName> {
+	constructor(hsm: StateBoundHsm<Context, Protocol>, cause: Error) {
+		super('RecoveryFailure', hsm, `onError() has thrown: ${quoteError(cause)}`, cause);
+	}
+}
+
+/**
+ * @category Error
+ */
+export class InitializationError<Context, Protocol extends {} | undefined> extends HsmError<Context, Protocol> {
+	constructor(hsm: StateBoundHsm<Context, Protocol>, public failedState: State<Context, Protocol>, cause: Error) {
+		super('InitializationError', hsm, `state ${failedState.name} has thrown an error during initialization`, cause);
 	}
 }

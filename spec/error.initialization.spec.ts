@@ -1,8 +1,8 @@
 import { expect } from 'chai';
 import 'mocha';
+import { InitializationError } from '../src/defs';
 import * as ihsm from '../src/index';
-import { TRACE_LEVELS } from './spec.utils';
-import { createTestDispatchErrorCallback } from './spec.utils';
+import { createTestDispatchErrorCallback, getLastError, TRACE_LEVELS } from './spec.utils';
 
 class TopState extends ihsm.BaseTopState {}
 @ihsm.initialState
@@ -28,6 +28,7 @@ for (const traceLevel of TRACE_LEVELS) {
 			sm = ihsm.create(TopState, {});
 			await sm.sync();
 			expect(sm.currentStateName).equals('FatalErrorState');
+			expect(getLastError()).instanceOf(InitializationError);
 		});
 	});
 }

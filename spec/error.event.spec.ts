@@ -7,6 +7,8 @@ interface Protocol {
 	executeWithError01(): void;
 	executeWithError02(): void;
 	executeWithError03(): void;
+	executeWithError04(): void;
+	executeWithError05(): void;
 	transitionTo(s: ihsm.State<ihsm.Any, Protocol>): void;
 }
 class TopState extends ihsm.BaseTopState<ihsm.Any, Protocol> {
@@ -24,6 +26,14 @@ class TopState extends ihsm.BaseTopState<ihsm.Any, Protocol> {
 	executeWithError03(): void {
 		throw new Error('error 03');
 	}
+
+	executeWithError04(): void {
+		throw new Error('error 04');
+	}
+
+	executeWithError05(): void {
+		throw new Error('error 05');
+	}
 }
 
 class NoRecovery extends TopState {}
@@ -39,12 +49,29 @@ class Recovery extends TopState {
 				return;
 			case 'executeWithError03':
 				throw new Error('Error in onError()');
+			case 'executeWithError04':
+				this.transition(C);
+				break;
+			case 'executeWithError05':
+				throw new Error('Error in onError()');
 		}
 		await this.sleep(1000);
 	}
 }
 
 class B extends Recovery {}
+
+class C extends Recovery {
+	onEntry(): Promise<void> | void {
+		throw new Error('Create a transition error during error recovery');
+	}
+}
+
+class D extends Recovery {
+	onExit(): Promise<void> | void {
+		throw new Error('Transition failed while going to fatal error state');
+	}
+}
 
 for (const traceLevel of TRACE_LEVELS) {
 	describe(`Error event (traceLevel = ${traceLevel})`, function(): void {
@@ -79,9 +106,24 @@ for (const traceLevel of TRACE_LEVELS) {
 			expect(sm.currentState).equals(ihsm.FatalErrorState);
 		});
 
-		it(`it does not recover, because of an Error in onError()`, async () => {
+		it(`it does not recover: Error in onError()`, async () => {
 			expect(sm.currentState).equals(Recovery);
 			sm.post('executeWithError03');
+			await sm.sync();
+			expect(sm.currentState).equals(ihsm.FatalErrorState);
+		});
+
+		it(`it does not recover: Error in a transition following onError()`, async () => {
+			expect(sm.currentState).equals(Recovery);
+			sm.post('executeWithError04');
+			await sm.sync();
+			expect(sm.currentState).equals(ihsm.FatalErrorState);
+		});
+
+		it(`it does not recover: another error is thrown while going to the FatalErrorState`, async () => {
+			expect(sm.currentState).equals(Recovery);
+			sm.post('transitionTo', D);
+			sm.post('executeWithError05');
 			await sm.sync();
 			expect(sm.currentState).equals(ihsm.FatalErrorState);
 		});

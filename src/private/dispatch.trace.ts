@@ -1,14 +1,8 @@
-// Each dispatch implementation function exports 3 functions:
-//   - a Transition Factory
-//   - an Init Dispatch function
-//   - an Event Dispatch Function
-
-// eslint-disable-next-line valid-jsdoc
-import { HsmWithTracing, Task, Transition, DoneCallback } from './defs.private';
-import { quoteError } from './utils';
-import { BaseTopState, EventHandlerError, EventHandlerName, EventHandlerPayload, FatalErrorState, RuntimeError, State, TransitionError, UnhandledEventError } from '../defs';
+import { BaseTopState, EventHandlerError, EventHandlerName, EventHandlerPayload, FatalErrorState, InitializationError, RecoveryError, RuntimeError, State, TransitionError, UnhandledEventError } from '../defs';
 
 import { getInitialState, hasInitialState } from '../initialstate';
+import { DoneCallback, HsmWithTracing, Task, Transition } from './defs.private';
+import { quoteError } from './utils';
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Private Implementation
@@ -50,7 +44,7 @@ class TraceTransition<Context, Protocol extends {} | undefined, EventName extend
 					if (res) await res;
 					hsm._traceWrite(`${stateName}.onEntry() done`);
 				} catch (cause) {
-					hsm._tracePopError(`${stateName}.onExit() has thrown ${quoteError(cause)}`);
+					hsm._tracePopError(`${stateName}.onEntry() has thrown ${quoteError(cause)}`);
 					throw new TransitionError(hsm, cause, state.name, 'onEntry', srcState.name, dstState.name);
 				}
 			} else {
@@ -173,7 +167,7 @@ async function doErrorWithTracing<Context, Protocol extends {} | undefined, Even
 		hsm._tracePopError(`error handler execution failure: ${quoteError(err)}`);
 		if (err instanceof TransitionError) {
 			hsm._tracePopError(`error recovery failure: ${quoteError(err)}`);
-			throw err;
+			throw new RecoveryError(hsm, err);
 		} else {
 			hsm.transition(FatalErrorState);
 			try {
@@ -181,10 +175,10 @@ async function doErrorWithTracing<Context, Protocol extends {} | undefined, Even
 				hsm._tracePopError(`error recovery failure: ${quoteError(err)}`);
 			} catch (transitionError) {
 				hsm._tracePopError(`error recovery failure: ${quoteError(err)}`);
-				throw transitionError;
+				throw new RecoveryError(hsm, err);
 			}
 		}
-		throw err;
+		throw new RecoveryError(hsm, err);
 	}
 	hsm._tracePopDone('error recovery successful');
 }
@@ -290,10 +284,10 @@ async function executeInit<Context, Protocol extends {} | undefined, EventName e
 			}
 			hsm._tracePopDone(`final state is ${currState.name}`);
 			hsm.currentState = currState;
-		} catch (err) {
-			hsm._tracePopError(`initialization failed from top state '${hsm.topState.name}' as ${currState.name}.onEntry() handler has raised ${quoteError(err)}; final state is ${FatalErrorState.name}`);
+		} catch (cause) {
+			hsm._tracePopError(`initialization failed from top state '${hsm.topState.name}' as ${currState.name}.onEntry() handler has raised ${quoteError(cause)}; final state is ${FatalErrorState.name}`);
 			hsm.currentState = FatalErrorState;
-			throw err; // TODO: add InitializationFailedError
+			throw new InitializationError(hsm, currState, cause);
 		}
 	} finally {
 		hsm._traceWrite('end initialization');

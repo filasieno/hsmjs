@@ -1,8 +1,8 @@
 import { expect } from 'chai';
 import 'mocha';
 import * as ihsm from '../src/index';
-import { TRACE_LEVELS } from './spec.utils';
-import { createTestDispatchErrorCallback } from './spec.utils';
+import { createTestDispatchErrorCallback, getLastError, TRACE_LEVELS } from './spec.utils';
+
 ihsm.configureDispatchErrorCallback(createTestDispatchErrorCallback());
 
 interface Protocol {
@@ -18,6 +18,10 @@ class TopState extends ihsm.BaseTopState<ihsm.Any, Protocol> {
 			this.transition(B);
 		} else {
 			this.transition(A);
+		}
+
+		if (this.currentState === F) {
+			this.transition(E);
 		}
 	}
 
@@ -38,15 +42,35 @@ class C extends TopState {
 	}
 }
 
-class D extends TopState {
-	onUnhandled<EventName extends keyof Protocol>(error: ihsm.UnhandledEventError<ihsm.Any, Protocol, EventName>): Promise<void> | void {
-		this.transition(E);
-	}
-}
-
 class E extends TopState {
 	onEntry(): Promise<void> | void {
 		throw new Error('Unhandled throws in a transition');
+	}
+}
+
+class F extends TopState {}
+
+class G extends TopState {
+	onError<EventName extends keyof Protocol>(error: ihsm.RuntimeError<ihsm.Any, Protocol, EventName>): Promise<void> | void {
+		console.log('recovered');
+	}
+
+	onUnhandled<EventName extends keyof Protocol>(error: ihsm.UnhandledEventError<ihsm.Any, Protocol, EventName>): Promise<void> | void {
+		throw new Error('Error to recover');
+	}
+}
+
+class H extends TopState {
+	hello() {
+		this.unhandled();
+	}
+
+	onError<EventName extends keyof Protocol>(error: ihsm.RuntimeError<ihsm.Any, Protocol, EventName>): Promise<void> | void {
+		throw new Error('Fail now');
+	}
+
+	onUnhandled<EventName extends keyof Protocol>(error: ihsm.UnhandledEventError<ihsm.Any, Protocol, EventName>): Promise<void> | void {
+		throw new Error('Error to recover');
 	}
 }
 
@@ -83,6 +107,31 @@ for (const traceLevel of TRACE_LEVELS) {
 			sm.post('hello');
 			await sm.sync();
 			expect(sm.currentState).equals(ihsm.FatalErrorState);
+			expect(getLastError()).instanceOf(ihsm.RuntimeError);
+		});
+
+		it(`throws in a transition after onUnhandled()`, async () => {
+			sm.post('transitionTo', F);
+			sm.post('hello');
+			await sm.sync();
+			expect(sm.currentState).equals(ihsm.FatalErrorState);
+			expect(getLastError()).instanceOf(ihsm.RuntimeError);
+		});
+
+		it(`throws and recovers`, async () => {
+			sm.post('transitionTo', G);
+			sm.post('hello');
+			await sm.sync();
+			expect(sm.currentState).equals(G);
+			expect(getLastError()).instanceOf(ihsm.RuntimeError);
+		});
+
+		it(`throws, and it does not recover in a user marked unhandled`, async () => {
+			sm.post('transitionTo', H);
+			sm.post('hello');
+			await sm.sync();
+			expect(sm.currentState).equals(ihsm.FatalErrorState);
+			expect(getLastError()).instanceOf(ihsm.RuntimeError);
 		});
 	});
 }
