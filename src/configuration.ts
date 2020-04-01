@@ -1,6 +1,22 @@
-import { Hsm, Options, State, StateBoundHsm, TraceLevel, TraceWriter } from './defs';
-import { HsmInstance, HsmWithTracing } from './private/private-defs';
+import { DispatchErrorCallback, Hsm, Options, State, StateBoundHsm, TraceLevel, TraceWriter } from './defs';
+import { HsmInstance, HsmWithTracing } from './private/defs.private';
 import { HsmObject } from './private/hsm';
+
+/**
+ * @category Configuration
+ */
+export class ConsoleTraceWriter implements TraceWriter {
+	write<Context, Protocol extends {} | undefined>(hsm: StateBoundHsm<Context, Protocol>, trace: any): void {
+		if (typeof trace == 'string') {
+			console.log(`${hsm.traceHeader}${trace}`);
+		} else {
+			console.log(trace);
+		}
+	}
+}
+
+/** @internal */
+const defaultTraceWriter = new ConsoleTraceWriter();
 
 /**
  * todo
@@ -14,33 +30,9 @@ export function defaultDispatchErrorCallback<Context, Protocol extends {} | unde
 	throw err;
 }
 
-/**
- * @category Configuration
- */
-export class ConsoleTraceWriter implements TraceWriter {
-	writeTrace<Context, Protocol extends {} | undefined>(hsm: StateBoundHsm<Context, Protocol>, traceLevel: TraceLevel, trace: any): void {
-		if (hsm.traceLevel < traceLevel) return;
-		if (typeof trace == 'string') {
-			console.log(`${TraceLevel[traceLevel]}|${hsm.traceHeader}${trace} | ${hsm.currentStateName}`);
-		} else {
-			console.log(trace);
-		}
-	}
-
-	write<Context, Protocol extends {} | undefined>(hsm: StateBoundHsm<Context, Protocol>, trace: any): void {
-		if (typeof trace == 'string') {
-			console.log(`${hsm.traceHeader}${trace}`);
-		} else {
-			console.log(trace);
-		}
-	}
-}
-
-/** @internal */
-const defaultTraceWriter = new ConsoleTraceWriter();
 /** @internal */
 let defaultCreateOptions: Options = {
-	traceLevel: TraceLevel.NONE,
+	traceLevel: TraceLevel.PRODUCTION,
 	traceWriter: defaultTraceWriter,
 	dispatchErrorCallback: defaultDispatchErrorCallback,
 };
@@ -53,7 +45,7 @@ let defaultCreateOptions: Options = {
  */
 export function configureHsm(
 	options: Options = {
-		traceLevel: TraceLevel.NONE,
+		traceLevel: TraceLevel.PRODUCTION,
 		traceWriter: defaultTraceWriter,
 		dispatchErrorCallback: defaultDispatchErrorCallback,
 	}
@@ -71,12 +63,12 @@ export function configureHsm(
  * @category Configuration
  */
 // prettier-ignore
-export function configureTraceLevel(traceLevel: TraceLevel = TraceLevel.NONE): void { defaultCreateOptions.traceLevel = traceLevel; }
+export function configureTraceLevel(traceLevel: TraceLevel = TraceLevel.PRODUCTION): void { defaultCreateOptions.traceLevel = traceLevel; }
 
 // eslint-disable-next-line valid-jsdoc
 /**
  * todo
- * @param {{new(): TraceWriter}} traceWriter
+ * @param {TraceWriter} traceWriter
  * @category Configuration
  */
 // prettier-ignore
@@ -92,26 +84,26 @@ export function configureDispatchErrorCallback<Context, Protocol extends {} | un
  * @param {State<Context, Protocol>} topState
  * @param {Context} ctx
  * @param {boolean} initialize
+ * @param dispatchErrorCallback
  * @param {HsmOptions} options
  * @return {Hsm<Context, Protocol>}
- * @category BaseTopState machine factory
+ * @category Configuration
  */
-export function create<Context, Protocol extends {} | undefined, EventName extends keyof Protocol>(topState: State<Context, Protocol>, ctx: Context, initialize = true, options?: Options): Hsm<Context, Protocol> {
+// prettier-ignore
+export function create<Context, Protocol extends {} | undefined, EventName extends keyof Protocol>(
+	topState: State<Context, Protocol>,
+	ctx: Context,
+	initialize = true,
+	dispatchErrorCallback?: DispatchErrorCallback<Context, Protocol>,
+	options?: Options
+): Hsm<Context, Protocol> {
 	const userOptions = options ? options : defaultCreateOptions;
 	const instance: HsmInstance<Context, Protocol> = {
 		hsm: (undefined as unknown) as HsmWithTracing<Context, Protocol>,
 		ctx: ctx,
 	};
+	const dec: DispatchErrorCallback<Context, Protocol> = dispatchErrorCallback ? dispatchErrorCallback : userOptions.dispatchErrorCallback;
 	Object.setPrototypeOf(instance, topState.prototype);
-	instance.hsm = new HsmObject(topState, instance, userOptions.traceWriter, userOptions.traceLevel, userOptions.dispatchErrorCallback, initialize);
+	instance.hsm = new HsmObject(topState, instance, userOptions.traceWriter, userOptions.traceLevel, dec, initialize);
 	return instance.hsm;
-}
-
-/**
- * Resets the Hsm Id counter.
- *
- * @category Configuration
- */
-export function resetId(): void {
-	HsmObject.instanceId = 9999999;
 }

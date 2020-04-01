@@ -30,7 +30,6 @@ class TopState extends ihsm.BaseTopState<Report> {
 		this.ctx.currentStateName = this.currentStateName;
 		this.ctx.traceHeader = this.traceHeader;
 		this.ctx.topState = this.topState;
-		this.ctx.id = this.id;
 		this.ctx.ctxTypeName = this.ctxTypeName;
 		this.ctx.traceLevel = this.traceLevel;
 		this.ctx.topStateName = this.topStateName;
@@ -53,7 +52,6 @@ for (const traceLevel of TRACE_LEVELS) {
 
 		it(`are available`, async () => {
 			const ctx = new Report();
-			ihsm.resetId();
 			sm = ihsm.create(TopState, ctx);
 			sm.post('report', 'hello world');
 			await sm.sync();
@@ -64,7 +62,6 @@ for (const traceLevel of TRACE_LEVELS) {
 			expect(ctx.currentStateName).eq('B');
 			// expect(ctx.traceHeader).eq('Report|10000000|    B'); TODO
 			expect(ctx.topState).eq(TopState);
-			expect(ctx.id).eq(10000000);
 			expect(ctx.ctxTypeName).eq('Report');
 			expect(ctx.traceLevel).eq(traceLevel);
 			expect(ctx.topStateName).eq('TopState');

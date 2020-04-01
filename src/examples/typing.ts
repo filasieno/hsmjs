@@ -33,7 +33,7 @@ class A extends TopState {}
 class B extends TopState {}
 
 async function main(): Promise<void> {
-	ihsm.configureTraceLevel(ihsm.TraceLevel.TRACE);
+	ihsm.configureTraceLevel(ihsm.TraceLevel.VERBOSE_DEBUG);
 	const hsm = ihsm.create(TopState, new Data(), true);
 	await hsm.sync();
 	console.log(`>> main: current state name: ${hsm.currentStateName}`);
