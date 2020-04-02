@@ -21,7 +21,14 @@
 		"ecmaVersion": 2018,
 		"sourceType": "module"
 	},
+	"overrides": [
+		{
+			"files": ["./src/*.ts"],
+			"excludedFiles": ["*.d.ts"]
+		}
+	],
 	"rules": {
+
 		"prettier/prettier": "error",
 		"indent": ["warn", "tab", { "SwitchCase": 1 }],
 		"require-jsdoc": [
@@ -40,6 +47,7 @@
 		"brace-style": ["error", "1tbs", { "allowSingleLine": true }],
 		"@typescript-eslint/interface-name-prefix": ["error", { "prefixWithI": "never" }],
 		"@typescript-eslint/no-use-before-define": ["error", { "functions": true, "classes": false }],
-		"@typescript-eslint/no-explicit-any": ["off", { "ignoreRestArgs": true }]
+		"@typescript-eslint/no-explicit-any": ["off", { "ignoreRestArgs": true }],
+		"@typescript-eslint/explicit-function-return-type": ["error"]
 	}
 }

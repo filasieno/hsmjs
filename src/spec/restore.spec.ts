@@ -1,12 +1,12 @@
 import { expect } from 'chai';
 import 'mocha';
-import * as ihsm from '../src/index';
-import { TRACE_LEVELS } from './spec.utils';
+import * as ihsm from '../index';
+import { clearLastError, TRACE_LEVELS } from './spec.utils';
 import { createTestDispatchErrorCallback } from './spec.utils';
 ihsm.configureDispatchErrorCallback(createTestDispatchErrorCallback());
 
 class TopState extends ihsm.BaseTopState {
-	getValue(obj: { value: string }) {
+	getValue(obj: { value: string }): void {
 		obj.value = this.ctx.value;
 	}
 }
@@ -20,17 +20,17 @@ class C extends TopState {}
 for (const traceLevel of TRACE_LEVELS) {
 	describe(`Restore (traceLevel = ${traceLevel})`, () => {
 		beforeEach(async () => {
-			console.log(`Current trace level: ${traceLevel as ihsm.TraceLevel}`);
 			ihsm.configureTraceLevel(traceLevel as ihsm.TraceLevel);
+			clearLastError();
 		});
 
 		it(`sets the current state and the current context`, async () => {
-			let initial = { value: 'initial' };
-			let first = { value: 'first' };
-			let second = { value: 'second' };
+			const initial = { value: 'initial' };
+			const first = { value: 'first' };
+			const second = { value: 'second' };
 
-			let hsm = ihsm.create(TopState, initial, false);
-			let query: ihsm.Any = { value: undefined };
+			const hsm = ihsm.create(TopState, initial, false);
+			const query: ihsm.Any = { value: undefined };
 			hsm.post('getValue', query);
 			await hsm.sync();
 			expect(query.value).equals(initial.value);

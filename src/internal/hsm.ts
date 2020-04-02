@@ -110,12 +110,10 @@ export class HsmObject<Context, Protocol extends {} | undefined> implements HsmW
 	}
 
 	sync(): Promise<void> {
-		this._traceWrite('begin sync(): waiting for task completion ...');
 		return new Promise(resolve => {
 			this.pushTask((doneCallback: () => void): void => {
 				resolve();
 				doneCallback();
-				this._traceWrite('end sync(): all tasks completed');
 			});
 		});
 	}

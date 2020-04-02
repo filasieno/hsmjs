@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import 'mocha';
-import * as ihsm from '../src/index';
-import { createTestDispatchErrorCallback, TRACE_LEVELS } from './spec.utils';
+import * as ihsm from '../index';
+import { clearLastError, createTestDispatchErrorCallback, TRACE_LEVELS } from './spec.utils';
 
 type Cons = new () => TopState;
 
@@ -35,9 +35,9 @@ for (const traceLevel of TRACE_LEVELS) {
 		let sm: ihsm.Hsm<ihsm.Any, Protocol>;
 
 		beforeEach(async () => {
-			console.log(`Current trace level: ${traceLevel as ihsm.TraceLevel}`);
 			ihsm.configureTraceLevel(traceLevel as ihsm.TraceLevel);
 			ihsm.configureDispatchErrorCallback(createTestDispatchErrorCallback(true));
+			clearLastError();
 			sm = ihsm.create(TopState, {});
 			await sm.sync();
 		});

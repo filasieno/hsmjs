@@ -7,7 +7,9 @@
 	"contributors": [
 		"Roberto Boati"
 	],
-	"dependencies": {},
+	"dependencies": {
+		"module-alias": "^2.2.2"
+	},
 	"description": "An idiomatic hierarchical state machine",
 	"devDependencies": {
 		"@istanbuljs/nyc-config-typescript": "^1.0.1",
@@ -58,14 +60,13 @@
 	"scripts": {
 		"build-browser": "tsc --build tsconfig.browser.json",
 		"build-node": "tsc --build tsconfig.json",
-		"clean": "rm -rf ./lib ./.tsc ./.nyc_output ./coverage ./src/*.js ./src/*.d.ts ./src/*.js.map ./src/examples/*.js ./src/examples/*.d.ts ./src/examples/*.js.map ./spec/*.js ./spec/*.d.ts ./spec/*.js.map",
-		"dist-examples": "mkdir -p ./lib/examples && cp ./src/examples/*.ts ./lib/examples",
-		"dist": "npm run dist-browser && npm run dist-node && npm run dist-examples && npm run doc",
-		"dist-browser": "mkdir -p ./lib && cp ./src/index.js ./lib/index.browser.js && cp ./src/index.d.ts ./lib/index.d.ts",
-		"dist-node": "mkdir -p ./lib && cp ./src/index.js ./lib/index.js && cp ./src/index.d.ts ./lib/index.d.ts",
+		"clean": "rm -rf ./lib ./.tsc ./.nyc_output ./coverage ./src/*.js ./src/*.d.ts ./src/*.js.map ./src/internal/*.js ./src/internal/*.d.ts ./src/internal/*.js.map ./src/spec/*.js ./src/spec/*.d.ts ./src/spec/*.js.map",
+		"dist": "npm run dist-browser && npm run dist-node && npm run doc",
+		"dist-browser": "mkdir -p ./lib && cp ./src/index.js ./lib/index.browser.js && cp src/index.d.ts ./lib/index.d.ts",
+		"dist-node": "mkdir -p ./lib && cp ./src/index.js ./lib/index.js && cp src/index.d.ts ./lib/index.d.ts",
 		"postdoc": "mkdir -p ./lib/doc/api/assets/images && cp assets/images/* ./lib/doc/api/assets/images",
 		"doc": "typedoc ./src/*.ts && eslint ./src/*.ts",
-		"lint": "prettier --check './src/**/*.ts'",
+		"lint": "eslint ./src/**/*.ts && prettier --check './src/**/*.ts'",
 		"prebuild-browser": "rm -f ./.tsc",
 		"prebuild-node": "rm -f ./.tsc",
 		"predist": "npm run clean",
@@ -73,8 +74,8 @@
 		"predist-node": "npm run build-node",
 		"prettier": "prettier --write './src/**/*.ts'",
 		"prettier-watch": "onchange './src/**/*.ts' -- prettier --write {{changed}}",
-		"build": "npm run dist",
-		"test": "nyc mocha './spec/**/*.spec.ts'",
+		"build": "npm run dist-node",
+		"test": "nyc mocha './src/spec/**/*.spec.ts'",
 		"coverage": "nyc report --reporter=text-lcov | coveralls"
 	},
 	"types": "./lib/index.d.ts",

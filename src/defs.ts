@@ -1,7 +1,7 @@
 /**
  * @category Event handler
  */
-import { quoteError } from './private/utils';
+import { quoteError } from './internal/utils';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type EventHandlerName<Protocol extends {} | undefined, EventName extends keyof Protocol> = Protocol extends undefined ? string : EventName extends keyof StateBoundHsm<any, any> ? never : EventName;
@@ -207,9 +207,9 @@ export class InitialStateError<Context, Protocol extends {} | undefined> extends
 /**
  * @category Error
  */
-export class RecoveryError<Context, Protocol extends {} | undefined, EventName extends keyof Protocol> extends RuntimeError<Context, Protocol, EventName> {
+export class FatalError<Context, Protocol extends {} | undefined, EventName extends keyof Protocol> extends RuntimeError<Context, Protocol, EventName> {
 	constructor(hsm: StateBoundHsm<Context, Protocol>, cause: Error) {
-		super('RecoveryFailure', hsm, `onError() has thrown: ${quoteError(cause)}`, cause);
+		super('RecoveryError', hsm, `onError() has thrown: ${quoteError(cause)}`, cause);
 	}
 }
 

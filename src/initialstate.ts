@@ -13,9 +13,15 @@ export function getInitialState<Context, Protocol extends {} | undefined>(State:
 	if (Object.prototype.hasOwnProperty.call(State, '_initialState')) {
 		return (State as { [key: string]: any })._initialState as State<Context, Protocol>;
 	}
-	throw new Error(State.name);
+	throw new Error(State.name); // TODO: add error
 }
 
+/**
+ * todo
+ *
+ * @param {State<Context, Protocol>} State
+ * @return {boolean}
+ */
 export function isInitialState<Context, Protocol extends {} | undefined>(State: State<Context, Protocol>): boolean {
 	if (Object.prototype.hasOwnProperty.call(State, '_isInitialState')) {
 		/**

@@ -35,9 +35,7 @@
         "importHelpers": false,
         "baseUrl": ".",
         "paths": {
-            "*": [
-                "*"
-            ]
+            "*": ["*"]
         },
         "lib": [
             "es2018",

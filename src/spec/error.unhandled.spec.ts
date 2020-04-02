@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import 'mocha';
-import * as ihsm from '../src/index';
-import { createTestDispatchErrorCallback, getLastError, TRACE_LEVELS } from './spec.utils';
+import * as ihsm from '../index';
+import { clearLastError, createTestDispatchErrorCallback, getLastError, TRACE_LEVELS } from './spec.utils';
 
 ihsm.configureDispatchErrorCallback(createTestDispatchErrorCallback());
 
@@ -14,6 +14,7 @@ type State = ihsm.State<ihsm.Any, Protocol>;
 
 class TopState extends ihsm.BaseTopState<ihsm.Any, Protocol> {
 	onUnhandled<EventName extends keyof Protocol>(error: ihsm.UnhandledEventError<ihsm.Any, Protocol, EventName>): Promise<void> | void {
+		console.log(`${error}`);
 		if (this.currentState === A) {
 			this.transition(B);
 		} else {
@@ -31,13 +32,14 @@ class TopState extends ihsm.BaseTopState<ihsm.Any, Protocol> {
 }
 
 class A extends TopState {
-	hello() {
+	hello(): void {
 		this.unhandled();
 	}
 }
 
 class C extends TopState {
 	onUnhandled<EventName extends keyof Protocol>(error: ihsm.UnhandledEventError<ihsm.Any, Protocol, EventName>): Promise<void> | void {
+		console.log(`error: ${error}`);
 		throw new Error('Unhandled throws');
 	}
 }
@@ -52,24 +54,28 @@ class F extends TopState {}
 
 class G extends TopState {
 	onError<EventName extends keyof Protocol>(error: ihsm.RuntimeError<ihsm.Any, Protocol, EventName>): Promise<void> | void {
+		console.log(`error: ${error}`);
 		console.log('recovered');
 	}
 
 	onUnhandled<EventName extends keyof Protocol>(error: ihsm.UnhandledEventError<ihsm.Any, Protocol, EventName>): Promise<void> | void {
+		console.log(`error: ${error}`);
 		throw new Error('Error to recover');
 	}
 }
 
 class H extends TopState {
-	hello() {
+	hello(): void {
 		this.unhandled();
 	}
 
 	onError<EventName extends keyof Protocol>(error: ihsm.RuntimeError<ihsm.Any, Protocol, EventName>): Promise<void> | void {
+		console.log(`${error}`);
 		throw new Error('Fail now');
 	}
 
 	onUnhandled<EventName extends keyof Protocol>(error: ihsm.UnhandledEventError<ihsm.Any, Protocol, EventName>): Promise<void> | void {
+		console.log(`${error}`);
 		throw new Error('Error to recover');
 	}
 }
@@ -82,8 +88,8 @@ for (const traceLevel of TRACE_LEVELS) {
 		let sm: ihsm.Hsm<ihsm.Any, Protocol>;
 
 		beforeEach(async () => {
-			console.log(`Current trace level: ${traceLevel as ihsm.TraceLevel}`);
 			ihsm.configureTraceLevel(traceLevel as ihsm.TraceLevel);
+			clearLastError();
 			ihsm.configureDispatchErrorCallback(createTestDispatchErrorCallback(true));
 			sm = ihsm.create(TopState, {});
 			await sm.sync();
@@ -123,7 +129,7 @@ for (const traceLevel of TRACE_LEVELS) {
 			sm.post('hello');
 			await sm.sync();
 			expect(sm.currentState).equals(G);
-			expect(getLastError()).instanceOf(ihsm.RuntimeError);
+			expect(getLastError()).equals(undefined);
 		});
 
 		it(`throws, and it does not recover in a user marked unhandled`, async () => {

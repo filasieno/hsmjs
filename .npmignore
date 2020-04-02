@@ -107,10 +107,10 @@ dist
 .idea
 
 # Build dirs
-dump
-src
-build
-html
+./dump
+./src
+./build
+./html
 .map
 .types
 **.map

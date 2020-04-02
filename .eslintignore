@@ -1,3 +1,3 @@
-src/**/*.js
-src/**/*.d.ts
-spec/*.ts
+./src/**/*.js
+./src/**/*.d.ts
+./src/spec/*.ts

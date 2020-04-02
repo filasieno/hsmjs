@@ -1,10 +1,8 @@
 import { expect } from 'chai';
 import 'mocha';
-import { TraceLevel, TraceWriter } from '../src/index';
-import * as ihsm from '../src/index';
-import { TRACE_LEVELS } from './spec.utils';
-import { createTestDispatchErrorCallback } from './spec.utils';
-ihsm.configureDispatchErrorCallback(createTestDispatchErrorCallback());
+import { TraceLevel, TraceWriter } from '../defs';
+import * as ihsm from '../index';
+import { createTestDispatchErrorCallback, clearLastError, TRACE_LEVELS } from './spec.utils';
 
 type State = ihsm.State<Report>;
 
@@ -16,7 +14,6 @@ class Report {
 	currentStateName?: string;
 	currentState?: State;
 	ctxTypeName?: string;
-	id?: number;
 	traceLevel?: TraceLevel;
 	topStateName?: string;
 	traceWriter?: TraceWriter;
@@ -24,6 +21,7 @@ class Report {
 
 class TopState extends ihsm.BaseTopState<Report> {
 	report(msg: string): void {
+		console.log(`received message: ${msg}`);
 		this.ctx.eventName = this.eventName;
 		this.ctx.eventPayload = this.eventPayload;
 		this.ctx.currentState = this.currentState;
@@ -46,8 +44,9 @@ for (const traceLevel of TRACE_LEVELS) {
 		let sm: ihsm.Hsm;
 
 		beforeEach(async () => {
-			console.log(`Current trace level: ${traceLevel as ihsm.TraceLevel}`);
+			ihsm.configureDispatchErrorCallback(createTestDispatchErrorCallback());
 			ihsm.configureTraceLevel(traceLevel as ihsm.TraceLevel);
+			clearLastError();
 		});
 
 		it(`are available`, async () => {
@@ -60,7 +59,6 @@ for (const traceLevel of TRACE_LEVELS) {
 			expect(ctx.eventPayload).eqls(['hello world']);
 			expect(ctx.currentState).eq(B);
 			expect(ctx.currentStateName).eq('B');
-			// expect(ctx.traceHeader).eq('Report|10000000|    B'); TODO
 			expect(ctx.topState).eq(TopState);
 			expect(ctx.ctxTypeName).eq('Report');
 			expect(ctx.traceLevel).eq(traceLevel);

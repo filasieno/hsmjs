@@ -1,5 +1,6 @@
 {
     "mode": "file",
+    "exclude": ["./src/**/*.d.ts"],
     "out": "lib/doc/api",
     "tsconfig": "tsconfig.json",
     "excludePrivate": true,

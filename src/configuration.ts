@@ -1,16 +1,16 @@
 import { DispatchErrorCallback, Hsm, Options, State, StateBoundHsm, TraceLevel, TraceWriter } from './defs';
-import { HsmInstance, HsmWithTracing } from './private/defs.private';
-import { HsmObject } from './private/hsm';
+import { HsmInstance, HsmWithTracing } from './internal/defs.private';
+import { HsmObject } from './internal/hsm';
 
 /**
  * @category Configuration
  */
 export class ConsoleTraceWriter implements TraceWriter {
-	write<Context, Protocol extends {} | undefined>(hsm: StateBoundHsm<Context, Protocol>, trace: any): void {
-		if (typeof trace == 'string') {
-			console.log(`${hsm.traceHeader}${trace}`);
+	write<Context, Protocol extends {} | undefined>(hsm: StateBoundHsm<Context, Protocol>, Message: any): void {
+		if (typeof Message == 'string') {
+			console.log(`${hsm.traceHeader}${hsm.currentStateName}: ${Message}`);
 		} else {
-			console.log(trace);
+			console.log(Message);
 		}
 	}
 }
@@ -40,7 +40,7 @@ let defaultCreateOptions: Options = {
 /**
  * Used to configureHsm the default _options_ object used when executing the {@link create} or {@link create} functions.
  *
- * @param {HsmOptions} options the new default options object
+ * @param {Options} options the new default options object
  * @category Configuration
  */
 export function configureHsm(

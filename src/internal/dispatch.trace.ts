@@ -1,12 +1,8 @@
-import { BaseTopState, EventHandlerError, EventHandlerName, EventHandlerPayload, FatalErrorState, InitializationError, RecoveryError, RuntimeError, State, TransitionError, UnhandledEventError } from '../defs';
+import { BaseTopState, EventHandlerError, EventHandlerName, EventHandlerPayload, FatalErrorState, InitializationError, FatalError, RuntimeError, State, TransitionError, UnhandledEventError } from '../defs';
 
 import { getInitialState, hasInitialState } from '../initialstate';
 import { DoneCallback, HsmWithTracing, Task, Transition } from './defs.private';
 import { quoteError } from './utils';
-
-// ---------------------------------------------------------------------------------------------------------------------
-// Private Implementation
-// ---------------------------------------------------------------------------------------------------------------------
 
 /** @internal */
 // eslint-disable-next-line valid-jsdoc
@@ -22,12 +18,12 @@ class TraceTransition<Context, Protocol extends {} | undefined, EventName extend
 			const stateName = state.name;
 			if (Object.prototype.hasOwnProperty.call(statePrototype, 'onExit')) {
 				try {
-					const res = statePrototype.onExit.call(hsm);
+					const res = statePrototype.onExit.call(hsm._instance);
 					if (res) await res;
 					hsm._traceWrite(`${stateName}.onExit() done`);
 				} catch (cause) {
 					hsm._tracePopError(`${stateName}.onExit() has thrown ${quoteError(cause)}`);
-					throw new TransitionError(hsm, cause, state.name, 'onExit', srcState.name, dstState.name);
+					throw new TransitionError(hsm, cause, stateName, 'onExit', srcState.name, dstState.name);
 				}
 			} else {
 				hsm._traceWrite(`${stateName}.onExit() skipped: default empty implementation`);
@@ -40,7 +36,7 @@ class TraceTransition<Context, Protocol extends {} | undefined, EventName extend
 			const stateName = state.name;
 			if (Object.prototype.hasOwnProperty.call(statePrototype, 'onEntry')) {
 				try {
-					const res = statePrototype.onEntry.call(hsm);
+					const res = statePrototype.onEntry.call(hsm._instance);
 					if (res) await res;
 					hsm._traceWrite(`${stateName}.onEntry() done`);
 				} catch (cause) {
@@ -105,9 +101,9 @@ function createTransition<Context, Protocol extends {} | undefined, EventName ex
 
 /** @internal */
 // eslint-disable-next-line valid-jsdoc
-async function doTransitionWithTracing<Context, Protocol extends {} | undefined>(hsm: HsmWithTracing<Context, Protocol>): Promise<void> {
-	try {
-		if (hsm._transitionState) {
+async function doTransition<Context, Protocol extends {} | undefined>(hsm: HsmWithTracing<Context, Protocol>): Promise<void> {
+	if (hsm._transitionState) {
+		try {
 			const srcState = hsm.currentState;
 			const destState = hsm._transitionState;
 			hsm._traceWrite(`requested transition from ${srcState.name} to ${destState.name} `);
@@ -122,17 +118,17 @@ async function doTransitionWithTracing<Context, Protocol extends {} | undefined>
 				hsm.currentState = FatalErrorState;
 				throw transitionError;
 			}
-		} else {
-			hsm._traceWrite('no transition requested');
+		} finally {
+			hsm._transitionState = undefined;
 		}
-	} finally {
-		hsm._transitionState = undefined;
+	} else {
+		hsm._traceWrite('no transition requested');
 	}
 }
 
 /** @internal */
 // eslint-disable-next-line valid-jsdoc
-function lookupErrorHandlerWithTracing<Context, Protocol extends {} | undefined, EventName extends keyof Protocol>(hsm: HsmWithTracing<Context, Protocol>): (error: RuntimeError<Context, Protocol, EventName>) => Promise<void> | void {
+function lookupErrorHandler<Context, Protocol extends {} | undefined, EventName extends keyof Protocol>(hsm: HsmWithTracing<Context, Protocol>): (error: RuntimeError<Context, Protocol, EventName>) => Promise<void> | void {
 	let state = hsm.currentState;
 	hsm._tracePush(`lookup`, `started lookup of #onError event handler`);
 	let output;
@@ -153,39 +149,39 @@ function lookupErrorHandlerWithTracing<Context, Protocol extends {} | undefined,
 
 /** @internal */
 // eslint-disable-next-line valid-jsdoc
-async function doErrorWithTracing<Context, Protocol extends {} | undefined, EventName extends keyof Protocol>(hsm: HsmWithTracing<Context, Protocol>, err: Error): Promise<void> {
+async function doError<Context, Protocol extends {} | undefined, EventName extends keyof Protocol>(hsm: HsmWithTracing<Context, Protocol>, err: Error): Promise<void> {
 	hsm._transitionState = undefined; // clear next state
 	hsm._tracePush(`error recovery`, `started error recovery`);
-	const messageHandler = lookupErrorHandlerWithTracing(hsm);
+	const messageHandler = lookupErrorHandler(hsm);
 	try {
 		hsm._tracePush('execute', 'started #onError handler execution');
 		const result = messageHandler.call(hsm._instance, new EventHandlerError(hsm, err));
 		if (result) await result;
 		hsm._tracePopDone('error handler execution successful');
-		await doTransitionWithTracing(hsm);
+		await doTransition(hsm);
 	} catch (err) {
 		hsm._tracePopError(`error handler execution failure: ${quoteError(err)}`);
 		if (err instanceof TransitionError) {
 			hsm._tracePopError(`error recovery failure: ${quoteError(err)}`);
-			throw new RecoveryError(hsm, err);
+			throw err;
 		} else {
 			hsm.transition(FatalErrorState);
 			try {
-				await doTransitionWithTracing(hsm);
+				await doTransition(hsm);
 				hsm._tracePopError(`error recovery failure: ${quoteError(err)}`);
 			} catch (transitionError) {
 				hsm._tracePopError(`error recovery failure: ${quoteError(err)}`);
-				throw new RecoveryError(hsm, err);
+				throw new FatalError(hsm, err);
 			}
 		}
-		throw new RecoveryError(hsm, err);
+		throw new FatalError(hsm, err);
 	}
 	hsm._tracePopDone('error recovery successful');
 }
 
 /** @internal */
 // eslint-disable-next-line valid-jsdoc
-function lookupUnhandledWithTracing<Context, Protocol extends {} | undefined, EventName extends keyof Protocol>(hsm: HsmWithTracing<Context, Protocol>): (error: UnhandledEventError<Context, Protocol, EventName>) => Promise<void> | void {
+function lookupUnhandled<Context, Protocol extends {} | undefined, EventName extends keyof Protocol>(hsm: HsmWithTracing<Context, Protocol>): (error: UnhandledEventError<Context, Protocol, EventName>) => Promise<void> | void {
 	let state = hsm.currentState;
 	hsm._tracePush(`lookup`, `started lookup of #onUnhandled event handler`);
 	let output;
@@ -206,15 +202,15 @@ function lookupUnhandledWithTracing<Context, Protocol extends {} | undefined, Ev
 
 /** @internal */
 // eslint-disable-next-line valid-jsdoc
-async function doUnhandledEventWithTracing<Context, Protocol extends {} | undefined, EventName extends keyof Protocol>(hsm: HsmWithTracing<Context, Protocol>, error: UnhandledEventError<Context, Protocol, EventName>): Promise<void> {
+async function doUnhandledEvent<Context, Protocol extends {} | undefined, EventName extends keyof Protocol>(hsm: HsmWithTracing<Context, Protocol>, error: UnhandledEventError<Context, Protocol, EventName>): Promise<void> {
 	hsm._tracePush('unhandled recovery', `started unhandled event recovery`);
-	const messageHandler = lookupUnhandledWithTracing(hsm);
+	const messageHandler = lookupUnhandled(hsm);
 	try {
 		hsm._tracePush('execute', 'started #onUnhandled handler execution');
 		const result = messageHandler.call(hsm._instance, error);
 		if (result) await result;
 		hsm._tracePopDone('unhandled handler execution successful');
-		await doTransitionWithTracing(hsm);
+		await doTransition(hsm);
 		hsm._tracePopDone('unhandled event recovery successful');
 	} catch (err) {
 		hsm._tracePopError(`unhandled event recovery failure: ${quoteError(err)}`);
@@ -228,7 +224,7 @@ async function doUnhandledEventWithTracing<Context, Protocol extends {} | undefi
 
 		// Try to recover the error
 		try {
-			await doErrorWithTracing(hsm, err);
+			await doError(hsm, err);
 			hsm._tracePopDone('unhandled event recovery successful');
 		} catch (err) {
 			hsm._tracePopError(`unhandled event recovery failure: ${quoteError(err)}`);
@@ -239,7 +235,7 @@ async function doUnhandledEventWithTracing<Context, Protocol extends {} | undefi
 
 /** @internal */
 // eslint-disable-next-line valid-jsdoc
-function lookupEventHandlerWithTracing<Context, Protocol extends {} | undefined, EventName extends keyof Protocol>(hsm: HsmWithTracing<Context, Protocol>, eventName: EventHandlerName<Protocol, EventName>): ((...args: EventHandlerPayload<Protocol, EventName>) => Promise<void> | void) | undefined {
+function lookupEventHandler<Context, Protocol extends {} | undefined, EventName extends keyof Protocol>(hsm: HsmWithTracing<Context, Protocol>, eventName: EventHandlerName<Protocol, EventName>): ((...args: EventHandlerPayload<Protocol, EventName>) => Promise<void> | void) | undefined {
 	let state = hsm.currentState;
 	hsm._tracePush(`lookup`, `started lookup of #${eventName} event handler`);
 	while (true) {
@@ -267,7 +263,7 @@ async function executeInit<Context, Protocol extends {} | undefined, EventName e
 		try {
 			while (true) {
 				if (Object.prototype.hasOwnProperty.call(currState.prototype, 'onEntry')) {
-					currState.prototype['onEntry'].call(hsm);
+					currState.prototype['onEntry'].call(hsm._instance);
 					hsm._traceWrite(`${currState.name}.onEntry() done`);
 				} else {
 					hsm._traceWrite(`skip ${currState.name}.onEntry(): default empty implementation`);
@@ -302,13 +298,13 @@ async function dispatchEvent<Context, Protocol extends {} | undefined, EventName
 	hsm._currentEventName = eventName as string;
 	hsm._currentEventPayload = eventPayload;
 	try {
-		const eventHandler = lookupEventHandlerWithTracing(hsm, eventName);
+		const eventHandler = lookupEventHandler(hsm, eventName);
 
 		// If an event handler was not found then doUnhandledEventWithTracing
 		if (!eventHandler) {
 			hsm._traceWrite(`event #${eventName} is unhandled in state ${hsm.currentStateName}`);
 			try {
-				await doUnhandledEventWithTracing(hsm, new UnhandledEventError(hsm));
+				await doUnhandledEvent(hsm, new UnhandledEventError(hsm));
 				hsm._tracePopDone('event dispatch successful');
 				return;
 			} catch (err) {
@@ -323,14 +319,14 @@ async function dispatchEvent<Context, Protocol extends {} | undefined, EventName
 			const result = eventHandler.call(hsm._instance, ...eventPayload);
 			if (result) await result;
 			hsm._tracePopDone('event handler execution successful');
-			await doTransitionWithTracing(hsm);
+			await doTransition(hsm);
 			hsm._tracePopDone(`event dispatch successful`);
 		} catch (err) {
 			hsm._tracePopError(err);
 			if (err instanceof UnhandledEventError) {
 				hsm._traceWrite(`event #${eventName} is unhandled in state ${hsm.currentStateName}`);
 				try {
-					await doUnhandledEventWithTracing(hsm, err);
+					await doUnhandledEvent(hsm, err);
 					hsm._tracePopDone('event dispatch successful');
 					return;
 				} catch (err) {
@@ -342,7 +338,7 @@ async function dispatchEvent<Context, Protocol extends {} | undefined, EventName
 				throw err;
 			} else {
 				try {
-					await doErrorWithTracing(hsm, err);
+					await doError(hsm, err);
 					hsm._tracePopDone('event dispatch successful');
 				} catch (err) {
 					hsm._tracePopError(`event dispatch failed: ${quoteError(err)}`);

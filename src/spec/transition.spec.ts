@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import 'mocha';
-import { TRACE_LEVELS } from './spec.utils';
-import * as ihsm from '../src/index';
+import { TRACE_LEVELS, clearLastError } from './spec.utils';
+import * as ihsm from '../index';
 
 type Cons = new () => TopState;
 
@@ -23,6 +23,12 @@ class TopState extends ihsm.BaseTopState<TransitionTrace, Protocol> implements P
 	clear(): void {
 		this.ctx.entryList = [];
 		this.ctx.exitList = [];
+	}
+	onEntry(): void {
+		this.ctx.entryList.push(TopState);
+	}
+	onExit(): void {
+		this.ctx.exitList.push(TopState);
 	}
 }
 
@@ -171,8 +177,8 @@ for (const traceLevel of TRACE_LEVELS) {
 		let ctx: TransitionTrace;
 		let sm: ihsm.Hsm<TransitionTrace, Protocol>;
 		beforeEach(async () => {
-			console.log(`Current trace level: ${traceLevel as ihsm.TraceLevel}`);
 			ihsm.configureTraceLevel(traceLevel as ihsm.TraceLevel);
+			clearLastError();
 			ctx = new TransitionTrace();
 			sm = ihsm.create(TopState, ctx);
 			await sm.sync();
@@ -180,7 +186,7 @@ for (const traceLevel of TRACE_LEVELS) {
 
 		it(`using sets the initial currentState following the @ihsm.initialState annotation directives (traceLevel = ${traceLevel as ihsm.TraceLevel})`, async (): Promise<void> => {
 			expect(sm.currentState).eq(C1111);
-			expect(ctx.entryList).to.eql([C, C1, C11, C111, C1111]);
+			expect(ctx.entryList).to.eql([TopState, C, C1, C11, C111, C1111]);
 		});
 
 		it(`checks nextState to another branch with common ancestor (traceLevel = ${traceLevel as ihsm.TraceLevel})`, async () => {

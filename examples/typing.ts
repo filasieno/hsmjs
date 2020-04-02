@@ -1,4 +1,4 @@
-import * as ihsm from '../index';
+import * as ihsm from '../src/index';
 
 interface Protocol {
 	writeMessage(): void;

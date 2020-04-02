@@ -11,11 +11,13 @@ export interface Transition<Context, Protocol extends {} | undefined> {
 	execute(hsm: HsmWithTracing<Context, Protocol>, srcState: State<Context, Protocol>, dstState: State<Context, Protocol>): Promise<void>;
 }
 
+/** @internal */
 export type DoneCallback = () => void;
 
 /** @internal */
 export type Task = (done: DoneCallback) => void;
 
+/** @internal */
 export interface HsmWithTracing<Context, Protocol extends {} | undefined> extends Hsm<Context, Protocol>, StateBoundHsm<Context, Protocol> {
 	_transitionCache: Map<[State<Context, Protocol>, State<Context, Protocol>], Transition<Context, Protocol>>;
 	_createInitTask: <DispatchContext, DispatchProtocol extends {} | undefined>(hsm: HsmWithTracing<DispatchContext, DispatchProtocol>) => Task;

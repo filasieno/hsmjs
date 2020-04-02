@@ -1,11 +1,13 @@
 import { expect } from 'chai';
 import 'mocha';
-import * as ihsm from '../src/index';
-import { createTestDispatchErrorCallback } from './spec.utils';
+import * as ihsm from '../index';
+import { clearLastError, createTestDispatchErrorCallback } from './spec.utils';
 ihsm.configureDispatchErrorCallback(createTestDispatchErrorCallback());
 
 describe('@initialState decorator', function() {
 	it('sets BaseTopState._isInitialState and BaseTopState._initialState on BaseTopState constructor', async (): Promise<void> => {
+		clearLastError();
+
 		class TopState extends ihsm.BaseTopState {}
 
 		@ihsm.initialState
@@ -26,10 +28,12 @@ describe('@initialState decorator', function() {
 		class TopState extends ihsm.BaseTopState {}
 
 		@ihsm.initialState
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		class A extends TopState {}
 
 		try {
 			@ihsm.initialState
+			// eslint-disable-next-line @typescript-eslint/no-unused-vars
 			class B extends TopState {}
 			expect.fail('Should have failed');
 		} catch (e) {}

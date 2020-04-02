@@ -5,12 +5,9 @@
 
 An _idiomatic_ hierarchical state machine implementation library for Typescript and Javascript.
 
-It's fully featured as it supports the full _UML currentState chart_ formalism, but it's so easy and natural to write that 
-its actually faster to define a state machine using code rather then diagrams.
-
 It supports:   
-   * Extended events (user defined event payload)
-   * Extended states (user defined state variables)
+   * User defined event payloads
+   * User defined state variables (vs. just state names)
    * Hierarchically nested states
    * Orthogonal states
    * Actions
@@ -20,7 +17,6 @@ It supports:
    * Guards
    * Entry/Exit actions
    * async/sync function on entry, exit and all event handlers 
-
   
 ## Install
 
@@ -41,7 +37,7 @@ npm install -g ihsm@latest
 
 _Coming soon_.
 
-Check the ```./src/examples/``` and ```./spec/``` in the repository.
+Check the ```./src/spec/``` in the repository.
 
 # Development 
 
