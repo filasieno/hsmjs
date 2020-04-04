@@ -1,3 +1,5 @@
+import { hasInitialState } from './internal/utils';
+
 /**
  * todo
  * @category Factory
@@ -273,3 +275,30 @@ export class HsmInitializationError<Context, Protocol extends {} | undefined> ex
  * @category State machine
  */
 export class HsmFatalErrorState<Context, Protocol extends {} | undefined> extends HsmTopState<Context, Protocol> {}
+
+/**
+ * todo
+ *
+ * @param {State<Context, Protocol>} TargetState
+ *
+ * @typeparam DispatchContext
+ * @typeparam DispatchProtocol
+ *
+ * @category Factory
+ */
+export function HsmInitialState<Context, Protocol extends {} | undefined>(TargetState: HsmStateClass<Context, Protocol>): void {
+	const ParentOfTargetState = Object.getPrototypeOf(TargetState.prototype).constructor;
+	if (hasInitialState(ParentOfTargetState)) throw new HsmInitialStateError(TargetState);
+	Object.defineProperty(TargetState, '_isInitialState', {
+		value: true,
+		writable: false,
+		configurable: false,
+		enumerable: false,
+	});
+	Object.defineProperty(ParentOfTargetState, '_initialState', {
+		value: TargetState,
+		writable: false,
+		configurable: false,
+		enumerable: false,
+	});
+}

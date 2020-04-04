@@ -1,7 +1,7 @@
-import { getInitialState, hasInitialState, HsmTopState, HsmEventHandlerError, HsmEventHandlerName, HsmEventHandlerPayload, HsmFatalErrorState, HsmInitializationError, HsmFatalError, HsmRuntimeError, HsmStateClass, HsmTransitionError, HsmUnhandledEventError } from '../';
+import { HsmTopState, HsmEventHandlerError, HsmEventHandlerName, HsmEventHandlerPayload, HsmFatalErrorState, HsmInitializationError, HsmFatalError, HsmRuntimeError, HsmStateClass, HsmTransitionError, HsmUnhandledEventError } from '../';
 
 import { DoneCallback, HsmWithTracing, Task, Transition } from './defs.private';
-import { quoteError } from './utils';
+import { getInitialState, hasInitialState, quoteError } from './utils';
 
 /** @internal */
 // eslint-disable-next-line valid-jsdoc
