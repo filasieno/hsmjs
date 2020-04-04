@@ -4,7 +4,7 @@ import { hasInitialState } from './internal/utils';
  * todo
  * @category Factory
  */
-export type HsmCtx = Record<string, any>;
+export type HsmAny = Record<string, any>;
 
 //
 // Configuration
@@ -77,7 +77,7 @@ export interface HsmState<Context, Protocol extends {} | undefined> extends HsmB
  * todo
  * @category State machine
  */
-export interface Hsm<Context = HsmCtx, Protocol extends {} | undefined = undefined> extends HsmBase<Context, Protocol> {
+export interface Hsm<Context = HsmAny, Protocol extends {} | undefined = undefined> extends HsmBase<Context, Protocol> {
 	sync(): Promise<void>;
 	restore(state: HsmStateClass<Context, Protocol>, ctx: Context): void;
 }
@@ -99,13 +99,13 @@ export type HsmEventHandlerPayload<Protocol extends {} | undefined, EventName ex
  * todo
  * @category State machine
  */
-export type HsmStateClass<UserData = HsmCtx, Protocol extends {} | undefined = undefined> = Function & { prototype: HsmTopState<UserData, Protocol> };
+export type HsmStateClass<UserData = HsmAny, Protocol extends {} | undefined = undefined> = Function & { prototype: HsmTopState<UserData, Protocol> };
 
 /**
  * todo
  * @category State machine
  */
-export abstract class HsmTopState<Context = HsmCtx, Protocol extends {} | undefined = undefined> implements HsmState<Context, Protocol> {
+export abstract class HsmTopState<Context = HsmAny, Protocol extends {} | undefined = undefined> implements HsmState<Context, Protocol> {
 	readonly ctx!: Context;
 	readonly hsm!: HsmState<Context, Protocol>;
 	constructor() {
@@ -131,6 +131,9 @@ export abstract class HsmTopState<Context = HsmCtx, Protocol extends {} | undefi
 	}
 	get ctxTypeName(): string {
 		return this.hsm.ctxTypeName;
+	}
+	set traceLevel(value: HsmTraceLevel) {
+		this.hsm.traceLevel = value;
 	}
 	get traceLevel(): HsmTraceLevel {
 		return this.hsm.traceLevel;
@@ -166,10 +169,8 @@ export abstract class HsmTopState<Context = HsmCtx, Protocol extends {} | undefi
 	deferredPost<EventName extends keyof Protocol>(millis: number, eventName: HsmEventHandlerName<Protocol, EventName>, ...eventPayload: HsmEventHandlerPayload<Protocol, EventName>): void {
 		this.hsm.deferredPost(millis, eventName, ...eventPayload);
 	}
-
 	// eslint-disable-next-line @typescript-eslint/no-empty-function
 	onExit(): Promise<void> | void {}
-
 	// eslint-disable-next-line @typescript-eslint/no-empty-function
 	onEntry(): Promise<void> | void {}
 

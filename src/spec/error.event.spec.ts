@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import 'mocha';
-import { Hsm, HsmCtx, HsmEventHandlerError, HsmFactory, HsmFatalErrorState, HsmInitialState, HsmStateClass, HsmTopState } from '../';
+import { Hsm, HsmAny, HsmEventHandlerError, HsmFactory, HsmFatalErrorState, HsmInitialState, HsmStateClass, HsmTopState } from '../';
 
 import { clearLastError, createTestDispatchErrorCallback, TRACE_LEVELS } from './spec.utils';
 
@@ -10,11 +10,11 @@ interface Protocol {
 	executeWithError03(): void;
 	executeWithError04(): void;
 	executeWithError05(): void;
-	transitionTo(s: HsmStateClass<HsmCtx, Protocol>): void;
+	transitionTo(s: HsmStateClass<HsmAny, Protocol>): void;
 }
 
-class TopState extends HsmTopState<HsmCtx, Protocol> {
-	transitionTo(s: HsmStateClass<HsmCtx, Protocol>): void {
+class TopState extends HsmTopState<HsmAny, Protocol> {
+	transitionTo(s: HsmStateClass<HsmAny, Protocol>): void {
 		this.transition(s);
 	}
 
@@ -43,7 +43,7 @@ class NoRecovery extends TopState {}
 
 @HsmInitialState
 class Recovery extends TopState {
-	async onError<EventName extends keyof Protocol>(err: HsmEventHandlerError<HsmCtx, Protocol, EventName>): Promise<void> {
+	async onError<EventName extends keyof Protocol>(err: HsmEventHandlerError<HsmAny, Protocol, EventName>): Promise<void> {
 		switch (err.eventName) {
 			case 'executeWithError01':
 				return;

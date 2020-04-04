@@ -97,7 +97,11 @@ export class HsmObject<Context, Protocol extends {} | undefined> implements HsmW
 	get currentState(): HsmStateClass<Context, Protocol> { return Object.getPrototypeOf(this._instance).constructor; }
 	set currentState(newState: HsmStateClass<Context, Protocol>) { Object.setPrototypeOf(this._instance, newState.prototype); }
 	post<EventName extends keyof Protocol>(eventName: HsmEventHandlerName<Protocol, EventName>, ...eventPayload: HsmEventHandlerPayload<Protocol, EventName>): void { this.pushTask(this._createEventDispatchTask(this, eventName, ...eventPayload)); }
-	deferredPost<EventName extends keyof Protocol>(millis: number, eventName: HsmEventHandlerName<Protocol, EventName>, ...eventPayload: HsmEventHandlerPayload<Protocol, EventName>): void { setTimeout(() => this.pushTask(this._createEventDispatchTask(this, eventName, ...eventPayload)), millis); }
+	deferredPost<EventName extends keyof Protocol>(millis: number, eventName: HsmEventHandlerName<Protocol, EventName>, ...eventPayload: HsmEventHandlerPayload<Protocol, EventName>): void {
+		setTimeout(
+			() => this.pushTask(this._createEventDispatchTask(this, eventName, ...eventPayload)),
+			millis);
+	}
 	transition(nextState: HsmStateClass<Context, Protocol>): void { this._transitionState = nextState; }
 	unhandled(): never { throw new HsmUnhandledEventError(this); }
 	sleep(millis: number): Promise<void> { return new Promise(resolve => setTimeout(() => resolve(), millis)); }

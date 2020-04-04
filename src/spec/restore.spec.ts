@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import 'mocha';
-import { HsmFactory, HsmTopState, HsmInitialState, HsmCtx } from '../';
+import { HsmFactory, HsmTopState, HsmInitialState, HsmAny } from '../';
 import { clearLastError, TRACE_LEVELS, createTestDispatchErrorCallback } from './spec.utils';
 
 class TopState extends HsmTopState {
@@ -31,7 +31,7 @@ for (const traceLevel of TRACE_LEVELS) {
 			const second = { value: 'second' };
 
 			const hsm = factory.create(initial, false);
-			const query: HsmCtx = { value: undefined };
+			const query: HsmAny = { value: undefined };
 			hsm.post('getValue', query);
 			await hsm.sync();
 			expect(query.value).equals(initial.value);
