@@ -1,4 +1,4 @@
-import { InitialStateError, State } from './defs';
+import { HsmInitialStateError, HsmStateClass } from './';
 
 /**
  * todo
@@ -8,10 +8,11 @@ import { InitialStateError, State } from './defs';
  * @typeparam DispatchContext
  * @typeparam DispatchProtocol
  * @category Initial state
+ * @internal
  */
-export function getInitialState<Context, Protocol extends {} | undefined>(State: State<Context, Protocol>): State<Context, Protocol> {
+export function getInitialState<Context, Protocol extends {} | undefined>(State: HsmStateClass<Context, Protocol>): HsmStateClass<Context, Protocol> {
 	if (Object.prototype.hasOwnProperty.call(State, '_initialState')) {
-		return (State as { [key: string]: any })._initialState as State<Context, Protocol>;
+		return (State as { [key: string]: any })._initialState as HsmStateClass<Context, Protocol>;
 	}
 	throw new Error(State.name); // TODO: add error
 }
@@ -21,8 +22,9 @@ export function getInitialState<Context, Protocol extends {} | undefined>(State:
  *
  * @param {State<Context, Protocol>} State
  * @return {boolean}
+ * @internal
  */
-export function isInitialState<Context, Protocol extends {} | undefined>(State: State<Context, Protocol>): boolean {
+export function isInitialState<Context, Protocol extends {} | undefined>(State: HsmStateClass<Context, Protocol>): boolean {
 	if (Object.prototype.hasOwnProperty.call(State, '_isInitialState')) {
 		/**
 		 * todo
@@ -48,8 +50,9 @@ export function isInitialState<Context, Protocol extends {} | undefined>(State: 
  * @param {State<Context, Protocol>} State
  * @return {boolean}
  * @category Initial state
+ * @internal
  */
-export function hasInitialState<Context, Protocol extends {} | undefined>(State: State<Context, Protocol>): boolean {
+export function hasInitialState<Context, Protocol extends {} | undefined>(State: HsmStateClass<Context, Protocol>): boolean {
 	return Object.prototype.hasOwnProperty.call(State, '_initialState');
 }
 
@@ -64,9 +67,9 @@ export function hasInitialState<Context, Protocol extends {} | undefined>(State:
  * @category Initial state
  */
 // prettier-ignore
-export function initialState<Context, Protocol extends {} | undefined>(TargetState: State<Context, Protocol>): void {
+export function HsmInitialState<Context, Protocol extends {} | undefined>(TargetState: HsmStateClass<Context, Protocol>): void {
 	const ParentOfTargetState = Object.getPrototypeOf(TargetState.prototype).constructor;
-	if (hasInitialState(ParentOfTargetState)) throw new InitialStateError(TargetState);
+	if (hasInitialState(ParentOfTargetState)) throw new HsmInitialStateError(TargetState);
 	Object.defineProperty(TargetState, '_isInitialState', {
 		value: true, writable: false, configurable: false, enumerable: false,
 	});

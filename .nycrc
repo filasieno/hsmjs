@@ -10,7 +10,7 @@
 	"exclude": [
 		"node_modules/",
 		"coverage/",
-		"spec/"
+		"src/spec"
 	],
 	"reporter": [
 		"text",

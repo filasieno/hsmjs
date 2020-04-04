@@ -11,8 +11,8 @@
         "declarationMap": false,
         "sourceMap": true,
         // "outFile": ".",                        // Concatenate and emit output to single file.
-        // "outDir": "./build",
-        "rootDir": "./",
+        "outDir": "./lib",
+        "rootDir": "./src",
         "composite": false,
         "tsBuildInfoFile": "./.tsc",
         "removeComments": false,
@@ -41,10 +41,7 @@
             "es2018",
             "dom"
         ],
-        "rootDirs": [
-            "./src",
-            "./spec"
-        ],
+        "rootDirs": [],
         // "typeRoots": [],
         // "types": [],
         "allowSyntheticDefaultImports": true,     // Allow default imports from modules with no default export. This does not affect code emit, just typechecking
@@ -62,6 +59,7 @@
     "exclude": [
         "./lib",
         "tsconfig-*.js",
-        "node_modules"
+        "node_modules",
+        "./DefinitelyTyped"
     ]
 }

@@ -1,10 +1,9 @@
 import { expect } from 'chai';
 import 'mocha';
-import { TraceLevel, TraceWriter } from '../defs';
-import * as ihsm from '../index';
-import { createTestDispatchErrorCallback, clearLastError, TRACE_LEVELS } from './spec.utils';
+import { Hsm, HsmFactory, HsmInitialState, HsmStateClass, HsmTopState, HsmTraceLevel, HsmTraceWriter } from '../';
+import { clearLastError, TRACE_LEVELS } from './spec.utils';
 
-type State = ihsm.State<Report>;
+type State = HsmStateClass<Report>;
 
 class Report {
 	eventName?: string;
@@ -14,12 +13,12 @@ class Report {
 	currentStateName?: string;
 	currentState?: State;
 	ctxTypeName?: string;
-	traceLevel?: TraceLevel;
+	traceLevel?: HsmTraceLevel;
 	topStateName?: string;
-	traceWriter?: TraceWriter;
+	traceWriter?: HsmTraceWriter;
 }
 
-class TopState extends ihsm.BaseTopState<Report> {
+class TopState extends HsmTopState<Report> {
 	report(msg: string): void {
 		console.log(`received message: ${msg}`);
 		this.ctx.eventName = this.eventName;
@@ -34,24 +33,26 @@ class TopState extends ihsm.BaseTopState<Report> {
 		this.ctx.traceWriter = this.traceWriter;
 	}
 }
-@ihsm.initialState
+
+@HsmInitialState
 class A extends TopState {}
-@ihsm.initialState
+
+@HsmInitialState
 class B extends A {}
 
 for (const traceLevel of TRACE_LEVELS) {
 	describe(`Fields (traceLevel = ${traceLevel})`, () => {
-		let sm: ihsm.Hsm;
+		let sm: Hsm;
+		const factory = new HsmFactory(TopState);
+		factory.traceLevel = traceLevel;
 
 		beforeEach(async () => {
-			ihsm.configureDispatchErrorCallback(createTestDispatchErrorCallback());
-			ihsm.configureTraceLevel(traceLevel as ihsm.TraceLevel);
 			clearLastError();
 		});
 
 		it(`are available`, async () => {
 			const ctx = new Report();
-			sm = ihsm.create(TopState, ctx);
+			sm = factory.create(ctx);
 			sm.post('report', 'hello world');
 			await sm.sync();
 			expect(sm.currentStateName).eq('B');
@@ -59,11 +60,11 @@ for (const traceLevel of TRACE_LEVELS) {
 			expect(ctx.eventPayload).eqls(['hello world']);
 			expect(ctx.currentState).eq(B);
 			expect(ctx.currentStateName).eq('B');
-			expect(ctx.topState).eq(TopState);
+			expect(ctx.topState).eq(factory.topState);
 			expect(ctx.ctxTypeName).eq('Report');
-			expect(ctx.traceLevel).eq(traceLevel);
+			expect(ctx.traceLevel).eq(factory.traceLevel);
 			expect(ctx.topStateName).eq('TopState');
-			expect(ctx.traceWriter).instanceOf(ihsm.ConsoleTraceWriter);
+			expect(ctx.traceWriter).eq(factory.traceWriter);
 		});
 	});
 }

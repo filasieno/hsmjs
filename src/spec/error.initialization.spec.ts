@@ -1,13 +1,13 @@
 import { expect } from 'chai';
 import 'mocha';
-import { InitializationError } from '../index';
-import * as ihsm from '../index';
+import { Hsm, HsmFactory, HsmInitializationError, HsmInitialState, HsmTopState } from '../';
+
 import { clearLastError, createTestDispatchErrorCallback, getLastError, TRACE_LEVELS } from './spec.utils';
 
-class TopState extends ihsm.BaseTopState {}
-@ihsm.initialState
+class TopState extends HsmTopState {}
+@HsmInitialState
 class A extends TopState {}
-@ihsm.initialState
+@HsmInitialState
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 class B extends A {
 	onEntry(): void {
@@ -17,19 +17,22 @@ class B extends A {
 
 for (const traceLevel of TRACE_LEVELS) {
 	describe(`Initialization failure (traceLevel = ${traceLevel})`, function(): void {
-		let sm: ihsm.Hsm;
+		let sm: Hsm;
+		const factory = new HsmFactory(TopState);
 
 		beforeEach(async () => {
-			ihsm.configureTraceLevel(traceLevel as ihsm.TraceLevel);
-			ihsm.configureDispatchErrorCallback(createTestDispatchErrorCallback(true));
+			factory.traceLevel = traceLevel;
+			factory.dispatchErrorCallback = createTestDispatchErrorCallback(true);
 			clearLastError();
+			sm = factory.create({});
+			await sm.sync();
 		});
 
 		it(`moves the state machine to FatalErrorState`, async () => {
-			sm = ihsm.create(TopState, {});
+			sm = factory.create({});
 			await sm.sync();
-			expect(sm.currentStateName).equals('FatalErrorState');
-			expect(getLastError()).instanceOf(InitializationError);
+			expect(sm.currentStateName).equals('HsmFatalErrorState');
+			expect(getLastError()).instanceOf(HsmInitializationError);
 		});
 	});
 }

@@ -1,3 +1,3 @@
-export * from './defs';
+export * from './hsm';
 export * from './initialstate';
-export * from './configuration';
+export * from './factory';

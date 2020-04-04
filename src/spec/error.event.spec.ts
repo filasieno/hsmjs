@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 import 'mocha';
-import * as ihsm from '../index';
+import { Hsm, HsmCtx, HsmEventHandlerError, HsmFactory, HsmFatalErrorState, HsmInitialState, HsmStateClass, HsmTopState } from '../';
+
 import { clearLastError, createTestDispatchErrorCallback, TRACE_LEVELS } from './spec.utils';
 
 interface Protocol {
@@ -9,12 +10,14 @@ interface Protocol {
 	executeWithError03(): void;
 	executeWithError04(): void;
 	executeWithError05(): void;
-	transitionTo(s: ihsm.State<ihsm.Any, Protocol>): void;
+	transitionTo(s: HsmStateClass<HsmCtx, Protocol>): void;
 }
-class TopState extends ihsm.BaseTopState<ihsm.Any, Protocol> {
-	transitionTo(s: ihsm.State<ihsm.Any, Protocol>): void {
+
+class TopState extends HsmTopState<HsmCtx, Protocol> {
+	transitionTo(s: HsmStateClass<HsmCtx, Protocol>): void {
 		this.transition(s);
 	}
+
 	executeWithError01(): void {
 		throw new Error('error 01');
 	}
@@ -38,9 +41,9 @@ class TopState extends ihsm.BaseTopState<ihsm.Any, Protocol> {
 
 class NoRecovery extends TopState {}
 
-@ihsm.initialState
+@HsmInitialState
 class Recovery extends TopState {
-	async onError<EventName extends keyof Protocol>(err: ihsm.EventHandlerError<ihsm.Any, Protocol, EventName>): Promise<void> {
+	async onError<EventName extends keyof Protocol>(err: HsmEventHandlerError<HsmCtx, Protocol, EventName>): Promise<void> {
 		switch (err.eventName) {
 			case 'executeWithError01':
 				return;
@@ -75,13 +78,14 @@ class D extends Recovery {
 
 for (const traceLevel of TRACE_LEVELS) {
 	describe(`Error event (traceLevel = ${traceLevel})`, function(): void {
-		let sm: ihsm.Hsm<Record<string, any>, Protocol>;
+		let sm: Hsm;
+		const factory = new HsmFactory(TopState);
 
 		beforeEach(async () => {
-			ihsm.configureDispatchErrorCallback(createTestDispatchErrorCallback(true));
-			ihsm.configureTraceLevel(traceLevel);
+			factory.traceLevel = traceLevel;
+			factory.dispatchErrorCallback = createTestDispatchErrorCallback(true);
 			clearLastError();
-			sm = ihsm.create(TopState, {});
+			sm = factory.create({});
 			await sm.sync();
 		});
 
@@ -103,21 +107,21 @@ for (const traceLevel of TRACE_LEVELS) {
 			expect(sm.currentState).equals(NoRecovery);
 			sm.post('executeWithError01');
 			await sm.sync();
-			expect(sm.currentState).equals(ihsm.FatalErrorState);
+			expect(sm.currentState).equals(HsmFatalErrorState);
 		});
 
 		it(`it does not recover: Error in onError()`, async () => {
 			expect(sm.currentState).equals(Recovery);
 			sm.post('executeWithError03');
 			await sm.sync();
-			expect(sm.currentState).equals(ihsm.FatalErrorState);
+			expect(sm.currentState).equals(HsmFatalErrorState);
 		});
 
 		it(`it does not recover: Error in a transition following onError()`, async () => {
 			expect(sm.currentState).equals(Recovery);
 			sm.post('executeWithError04');
 			await sm.sync();
-			expect(sm.currentState).equals(ihsm.FatalErrorState);
+			expect(sm.currentState).equals(HsmFatalErrorState);
 		});
 
 		it(`it does not recover: another error is thrown while going to the FatalErrorState`, async () => {
@@ -125,7 +129,7 @@ for (const traceLevel of TRACE_LEVELS) {
 			sm.post('transitionTo', D);
 			sm.post('executeWithError05');
 			await sm.sync();
-			expect(sm.currentState).equals(ihsm.FatalErrorState);
+			expect(sm.currentState).equals(HsmFatalErrorState);
 		});
 	});
 }

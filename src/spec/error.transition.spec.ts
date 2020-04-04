@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import 'mocha';
-import * as ihsm from '../index';
+import { Hsm, HsmCtx, HsmFactory, HsmFatalErrorState, HsmInitialState, HsmTopState, HsmTraceLevel } from '../';
 import { clearLastError, createTestDispatchErrorCallback, TRACE_LEVELS } from './spec.utils';
 
 type Cons = new () => TopState;
@@ -9,7 +9,7 @@ interface Protocol {
 	transitionTo(s: Cons): void;
 }
 
-class TopState extends ihsm.BaseTopState<ihsm.Any, Protocol> implements Protocol {
+class TopState extends HsmTopState<HsmCtx, Protocol> implements Protocol {
 	transitionTo(s: Cons): void {
 		this.transition(s);
 	}
@@ -21,7 +21,7 @@ class A extends TopState {
 	}
 }
 
-@ihsm.initialState
+@HsmInitialState
 class B extends TopState {}
 
 class C extends TopState {
@@ -32,17 +32,18 @@ class C extends TopState {
 
 for (const traceLevel of TRACE_LEVELS) {
 	describe(`A transition that throws an error (traceLevel = ${traceLevel})`, function(): void {
-		let sm: ihsm.Hsm<ihsm.Any, Protocol>;
+		let sm: Hsm<HsmCtx, Protocol>;
+		const factory = new HsmFactory(TopState);
 
 		beforeEach(async () => {
-			ihsm.configureTraceLevel(traceLevel as ihsm.TraceLevel);
-			ihsm.configureDispatchErrorCallback(createTestDispatchErrorCallback(true));
+			factory.traceLevel = traceLevel;
+			factory.dispatchErrorCallback = createTestDispatchErrorCallback(true);
 			clearLastError();
-			sm = ihsm.create(TopState, {});
+			sm = factory.create({});
 			await sm.sync();
 		});
 
-		it(`logs an error from the exit() callback and moves the state machine to the 'FatalErrorState' (traceLevel = ${traceLevel as ihsm.TraceLevel})`, async () => {
+		it(`logs an error from the exit() callback and moves the state machine to the 'FatalErrorState' (traceLevel = ${traceLevel as HsmTraceLevel})`, async () => {
 			expect(sm.currentState).equals(B);
 
 			sm.post('transitionTo', C);
@@ -52,16 +53,16 @@ for (const traceLevel of TRACE_LEVELS) {
 			sm.post('transitionTo', B);
 			await sm.sync();
 
-			expect(sm.currentState).equals(ihsm.FatalErrorState);
+			expect(sm.currentState).equals(HsmFatalErrorState);
 		});
 
-		it(`logs an error from the entry() callback and moves the state machine to the 'FatalErrorState' (traceLevel = ${traceLevel as ihsm.TraceLevel})`, async () => {
+		it(`logs an error from the entry() callback and moves the state machine to the 'FatalErrorState' (traceLevel = ${traceLevel as HsmTraceLevel})`, async () => {
 			expect(sm.currentState).equals(B);
 
 			sm.post('transitionTo', A);
 			await sm.sync();
 
-			expect(sm.currentState).equals(ihsm.FatalErrorState);
+			expect(sm.currentState).equals(HsmFatalErrorState);
 		});
 	});
 }

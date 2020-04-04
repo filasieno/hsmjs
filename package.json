@@ -60,10 +60,8 @@
 	"scripts": {
 		"build-browser": "tsc --build tsconfig.browser.json",
 		"build-node": "tsc --build tsconfig.json",
-		"clean": "rm -rf ./lib ./.tsc ./.nyc_output ./coverage ./src/*.js ./src/*.d.ts ./src/*.js.map ./src/internal/*.js ./src/internal/*.d.ts ./src/internal/*.js.map ./src/spec/*.js ./src/spec/*.d.ts ./src/spec/*.js.map",
-		"dist": "npm run dist-browser && npm run dist-node && npm run doc",
-		"dist-browser": "mkdir -p ./lib && cp ./src/index.js ./lib/index.browser.js && cp src/index.d.ts ./lib/index.d.ts",
-		"dist-node": "mkdir -p ./lib && cp ./src/index.js ./lib/index.js && cp src/index.d.ts ./lib/index.d.ts",
+		"clean": "rm -rf ./lib ./.tsc ./.nyc_output ./coverage",
+		"dist": "npm npm run build-node && npm run doc",
 		"postdoc": "mkdir -p ./lib/doc/api/assets/images && cp assets/images/* ./lib/doc/api/assets/images",
 		"doc": "typedoc ./src/*.ts && eslint ./src/*.ts",
 		"lint": "eslint ./src/**/*.ts && prettier --check './src/**/*.ts'",
@@ -74,7 +72,7 @@
 		"predist-node": "npm run build-node",
 		"prettier": "prettier --write './src/**/*.ts'",
 		"prettier-watch": "onchange './src/**/*.ts' -- prettier --write {{changed}}",
-		"build": "npm run dist-node",
+		"build": "npm run build-node",
 		"test": "nyc mocha './src/spec/**/*.spec.ts'",
 		"coverage": "nyc report --reporter=text-lcov | coveralls"
 	},

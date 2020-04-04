@@ -1,26 +1,27 @@
 import { expect } from 'chai';
 import 'mocha';
-import * as ihsm from '../index';
-import { clearLastError, TRACE_LEVELS } from './spec.utils';
-import { createTestDispatchErrorCallback } from './spec.utils';
-ihsm.configureDispatchErrorCallback(createTestDispatchErrorCallback());
+import { HsmFactory, HsmTopState, HsmInitialState, HsmCtx } from '../';
+import { clearLastError, TRACE_LEVELS, createTestDispatchErrorCallback } from './spec.utils';
 
-class TopState extends ihsm.BaseTopState {
+class TopState extends HsmTopState {
 	getValue(obj: { value: string }): void {
 		obj.value = this.ctx.value;
 	}
 }
-@ihsm.initialState
+@HsmInitialState
 class A extends TopState {}
-@ihsm.initialState
+@HsmInitialState
 class B extends A {}
 
 class C extends TopState {}
 
 for (const traceLevel of TRACE_LEVELS) {
 	describe(`Restore (traceLevel = ${traceLevel})`, () => {
+		const factory = new HsmFactory(TopState);
+		factory.traceLevel = traceLevel;
+		factory.dispatchErrorCallback = createTestDispatchErrorCallback(true);
+
 		beforeEach(async () => {
-			ihsm.configureTraceLevel(traceLevel as ihsm.TraceLevel);
 			clearLastError();
 		});
 
@@ -29,20 +30,20 @@ for (const traceLevel of TRACE_LEVELS) {
 			const first = { value: 'first' };
 			const second = { value: 'second' };
 
-			const hsm = ihsm.create(TopState, initial, false);
-			const query: ihsm.Any = { value: undefined };
+			const hsm = factory.create(initial, false);
+			const query: HsmCtx = { value: undefined };
 			hsm.post('getValue', query);
 			await hsm.sync();
 			expect(query.value).equals(initial.value);
 			expect(hsm.currentState).equals(TopState);
 
-			hsm.restore(TopState, B, first);
+			hsm.restore(B, first);
 			hsm.post('getValue', query);
 			await hsm.sync();
 			expect(query.value).equals(first.value);
 			expect(hsm.currentState).equals(B);
 
-			hsm.restore(TopState, C, second);
+			hsm.restore(C, second);
 			hsm.post('getValue', query);
 			await hsm.sync();
 			expect(query.value).equals(second.value);
