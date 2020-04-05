@@ -1,13 +1,18 @@
 import { expect } from 'chai';
 import 'mocha';
-import { HsmFactory, Hsm, HsmInitialState, HsmTopState, HsmTraceLevel, HsmAny } from '../';
+import { HsmFactory, Hsm, HsmInitialState, HsmTopState, HsmTraceLevel, HsmAny, HsmTraceWriter } from '../';
+import * as ihsm from '../index';
 
 interface Protocol {
+	switchTraceWriter(tw: HsmTraceWriter): Promise<void>;
 	switchTraceLevel(tl: HsmTraceLevel): Promise<void>;
 	hello(): void;
 }
 
 class TopState extends HsmTopState<HsmAny, Protocol> {
+	async switchTraceWriter(tw: HsmTraceWriter): Promise<void> {
+		this.traceWriter = tw;
+	}
 	async switchTraceLevel(tl: HsmTraceLevel): Promise<void> {
 		console.log(`new trace level = ${HsmTraceLevel[tl]}`);
 		this.traceLevel = tl;
@@ -15,6 +20,13 @@ class TopState extends HsmTopState<HsmAny, Protocol> {
 
 	hello(): void {
 		console.log(`Hello: TraceLevel = ${HsmTraceLevel[this.traceLevel]}`);
+	}
+}
+
+class TestTraceWriter implements ihsm.HsmTraceWriter {
+	lines: string[] = [];
+	write<Context, Protocol>(hsm: ihsm.HsmProperties<Context, Protocol>, msg: any): void {
+		this.lines.push(`TEST: ${msg}`);
 	}
 }
 
@@ -67,5 +79,12 @@ describe(`Switch TraceLevel`, function(): void {
 		sm.post('hello');
 		await sm.sync();
 		console.log('<<<');
+	});
+
+	it('changes trace writer at runtime', async () => {
+		const tw = new TestTraceWriter();
+		sm.post('switchTraceWriter', tw);
+		sm.post('hello');
+		expect(tw.lines.filter(line => line.startsWith('TEST: '))).eqls([]);
 	});
 });
