@@ -8,6 +8,18 @@ import { hasInitialState, quoteError } from './internal/utils';
  */
 export type HsmAny = Record<string, any>;
 
+/**
+ * todo
+ * @category Event handler
+ */
+export type HsmRejectCallback = (error: Error) => void;
+
+/**
+ * todo
+ * @category Event handler
+ */
+export type HsmResolveCallback<Reply> = (result: Reply) => void;
+
 //
 // Configuration
 //

@@ -1,14 +1,14 @@
 import { expect } from 'chai';
 import 'mocha';
 
-import { Hsm, HsmAny, HsmFactory, HsmInitialState, HsmTopState, HsmTraceLevel } from '../';
+import { Hsm, HsmAny, HsmFactory, HsmInitialState, HsmRejectCallback, HsmResolveCallback, HsmTopState, HsmTraceLevel } from '../';
 
 interface Protocol {
 	getResult(resolve: (result: string) => void, reject: (error: Error) => void, value: string): void;
 }
 
 class TopState extends HsmTopState<HsmAny, Protocol> implements Protocol {
-	getResult(resolve: (result: string) => void, reject: (error: Error) => void, value: string): void {
+	async getResult(resolve: HsmResolveCallback<string>, reject: HsmRejectCallback, value: string): Promise<void> {
 		if (value.startsWith('ok:')) {
 			resolve(value);
 		} else {
