@@ -164,10 +164,10 @@ class C111 extends C11 {
 
 @HsmInitialState
 class C1111 extends C111 {
-	onEntry(): void {
+	async onEntry(): Promise<void> {
 		this.ctx.entryList.push(C1111);
 	}
-	onExit(): void {
+	async onExit(): Promise<void> {
 		this.ctx.exitList.push(C1111);
 	}
 }

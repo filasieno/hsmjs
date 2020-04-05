@@ -18,7 +18,9 @@ class TraceTransition<Context, Protocol extends {} | undefined, EventName extend
 			if (Object.prototype.hasOwnProperty.call(statePrototype, 'onExit')) {
 				try {
 					const res = statePrototype.onExit.call(hsm._instance);
-					if (res) await res;
+					if (res) {
+						await res;
+					}
 					hsm._traceWrite(`${stateName}.onExit() done`);
 				} catch (cause) {
 					hsm._tracePopError(`${stateName}.onExit() has thrown ${quoteError(cause)}`);
@@ -36,7 +38,9 @@ class TraceTransition<Context, Protocol extends {} | undefined, EventName extend
 			if (Object.prototype.hasOwnProperty.call(statePrototype, 'onEntry')) {
 				try {
 					const res = statePrototype.onEntry.call(hsm._instance);
-					if (res) await res;
+					if (res) {
+						await res;
+					}
 					hsm._traceWrite(`${stateName}.onEntry() done`);
 				} catch (cause) {
 					hsm._tracePopError(`${stateName}.onEntry() has thrown ${quoteError(cause)}`);
@@ -155,7 +159,9 @@ async function doError<Context, Protocol extends {} | undefined, EventName exten
 	try {
 		hsm._tracePush('execute', 'started #onError handler execution');
 		const result = messageHandler.call(hsm._instance, new HsmEventHandlerError(hsm, err));
-		if (result) await result;
+		if (result) {
+			await result;
+		}
 		hsm._tracePopDone('error handler execution successful');
 		await doTransition(hsm);
 	} catch (err) {
@@ -207,7 +213,9 @@ async function doUnhandledEvent<Context, Protocol extends {} | undefined, EventN
 	try {
 		hsm._tracePush('execute', 'started #onUnhandled handler execution');
 		const result = messageHandler.call(hsm._instance, error);
-		if (result) await result;
+		if (result) {
+			await result;
+		}
 		hsm._tracePopDone('unhandled handler execution successful');
 		await doTransition(hsm);
 		hsm._tracePopDone('unhandled event recovery successful');
@@ -316,7 +324,9 @@ async function dispatchEvent<Context, Protocol extends {} | undefined, EventName
 			// If a event handler was not found the call it
 			hsm._tracePush('execute', 'started event handler execution');
 			const result = eventHandler.call(hsm._instance, ...eventPayload);
-			if (result) await result;
+			if (result) {
+				await result;
+			}
 			hsm._tracePopDone('event handler execution successful');
 			await doTransition(hsm);
 			hsm._tracePopDone(`event dispatch successful`);

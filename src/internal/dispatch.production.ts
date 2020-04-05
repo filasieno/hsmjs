@@ -11,7 +11,9 @@ class ProductionTransition<Context, Protocol extends {} | undefined, EventName e
 		for (const state of this.exitList) {
 			try {
 				const res = state.prototype.onExit.call(hsm._instance);
-				if (res) await res;
+				if (res) {
+					await res;
+				}
 			} catch (cause) {
 				throw new HsmTransitionError(hsm, cause, state.name, 'onExit', srcState.name, dstState.name);
 			}
@@ -21,7 +23,9 @@ class ProductionTransition<Context, Protocol extends {} | undefined, EventName e
 		for (const state of this.entryList) {
 			try {
 				const res = state.prototype.onEntry.call(hsm._instance);
-				if (res) await res;
+				if (res) {
+					await res;
+				}
 			} catch (cause) {
 				throw new HsmTransitionError(hsm, cause, state.name, 'onEntry', srcState.name, dstState.name);
 			}
@@ -108,7 +112,9 @@ async function doError<Context, Protocol extends {} | undefined, EventName exten
 	const messageHandler = hsm.currentState.prototype.onError;
 	try {
 		const result = messageHandler.call(hsm._instance, new HsmEventHandlerError(hsm, err));
-		if (result) await result;
+		if (result) {
+			await result;
+		}
 		await doTransition(hsm);
 	} catch (err) {
 		if (err instanceof HsmTransitionError) {
@@ -128,7 +134,9 @@ async function doError<Context, Protocol extends {} | undefined, EventName exten
 async function doUnhandledEvent<Context, Protocol extends {} | undefined, EventName extends keyof Protocol>(hsm: HsmWithTracing<Context, Protocol>, error: HsmUnhandledEventError<Context, Protocol, EventName>): Promise<void> {
 	try {
 		const result = hsm.currentState.prototype.onUnhandled.call(hsm._instance, error);
-		if (result) await result;
+		if (result) {
+			await result;
+		}
 		await doTransition(hsm);
 	} catch (err) {
 		if (err instanceof HsmTransitionError) {

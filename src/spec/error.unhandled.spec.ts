@@ -56,7 +56,7 @@ class G extends TopState {
 		console.log('recovered');
 	}
 
-	onUnhandled<EventName extends keyof Protocol>(error: HsmUnhandledEventError<HsmAny, Protocol, EventName>): Promise<void> | void {
+	async onUnhandled<EventName extends keyof Protocol>(error: HsmUnhandledEventError<HsmAny, Protocol, EventName>): Promise<void> {
 		console.log(`error: ${error}`);
 		throw new Error('Error to recover');
 	}
