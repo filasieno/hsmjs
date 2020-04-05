@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import 'mocha';
 
-import { Hsm, HsmAny, HsmFactory, HsmFatalErrorState, HsmInitialState, HsmTopState, HsmTraceWriter } from '../';
+import { Hsm, HsmAny, HsmBase, HsmFactory, HsmFatalErrorState, HsmInitialState, HsmTopState } from '../';
 
 import { clearLastError, TRACE_LEVELS } from './spec.utils';
 
@@ -17,9 +17,9 @@ class TopState extends HsmTopState<HsmAny, Protocol> implements Protocol {
 
 	async switchCallback(): Promise<void> {
 		const defaultCallback = this.dispatchErrorCallback;
-		this.dispatchErrorCallback = (hsm: Hsm<HsmAny, Protocol>, traceWriter: HsmTraceWriter, msg: any): void => {
+		this.dispatchErrorCallback = (hsm: HsmBase<HsmAny, Protocol>, msg: any): void => {
 			try {
-				defaultCallback(hsm, hsm.traceWriter, msg);
+				defaultCallback(hsm, msg);
 			} catch (error) {
 				console.log(`Error ${error.name} has escaped`);
 			}
@@ -35,14 +35,14 @@ for (const traceLevel of TRACE_LEVELS) {
 		let sm: Hsm<HsmAny, Protocol>;
 		const factory = new HsmFactory(TopState);
 		let flag = false;
-		let defaultCallback: (hsm: Hsm<HsmAny, Protocol>, traceWriter: HsmTraceWriter, msg: any) => void;
+		let defaultCallback: (hsm: HsmBase<HsmAny, Protocol>, msg: any) => void;
 
 		beforeEach(async () => {
 			factory.traceLevel = traceLevel;
 			defaultCallback = factory.dispatchErrorCallback;
-			factory.dispatchErrorCallback = (hsm: Hsm<HsmAny, Protocol>, traceWriter, msg): void => {
+			factory.dispatchErrorCallback = (hsm: HsmBase<HsmAny, Protocol>, msg: any): void => {
 				try {
-					defaultCallback(hsm, hsm.traceWriter, msg);
+					defaultCallback(hsm, msg);
 				} catch (error) {
 					flag = true;
 					console.log(`Error: ${error.name}`);

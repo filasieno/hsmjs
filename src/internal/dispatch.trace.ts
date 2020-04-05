@@ -362,7 +362,7 @@ async function dispatchEvent<Context, Protocol extends {} | undefined, EventName
 export function createInitTask<DispatchContext, DispatchProtocol extends {} | undefined>(hsm: HsmWithTracing<DispatchContext, DispatchProtocol>): Task {
 	return (done: DoneCallback): void => {
 		executeInit(hsm)
-			.catch((err: Error) => hsm.dispatchErrorCallback(hsm, hsm.traceWriter, err))
+			.catch((err: Error) => hsm.dispatchErrorCallback(hsm, err))
 			.finally(() => done());
 	};
 }
@@ -372,7 +372,7 @@ export function createInitTask<DispatchContext, DispatchProtocol extends {} | un
 export function createEventDispatchTask<DispatchContext, DispatchProtocol extends {} | undefined, EventName extends keyof DispatchProtocol>(hsm: HsmWithTracing<DispatchContext, DispatchProtocol>, eventName: HsmEventHandlerName<DispatchProtocol, EventName>, ...eventPayload: HsmEventHandlerPayload<DispatchProtocol, EventName>): Task {
 	return (done: DoneCallback): void => {
 		dispatchEvent(hsm, eventName, ...eventPayload)
-			.catch((err: Error) => hsm.dispatchErrorCallback(hsm, hsm.traceWriter, err))
+			.catch((err: Error) => hsm.dispatchErrorCallback(hsm, err))
 			.finally(() => done());
 	};
 }

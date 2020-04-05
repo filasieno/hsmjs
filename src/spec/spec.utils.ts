@@ -1,16 +1,16 @@
-import { Hsm, HsmTraceLevel, HsmTraceWriter } from '../';
+import { HsmBase, HsmTraceLevel } from '../';
 export const TRACE_LEVELS: HsmTraceLevel[] = [HsmTraceLevel.VERBOSE_DEBUG, HsmTraceLevel.DEBUG, HsmTraceLevel.PRODUCTION];
 
 let lastError: Error | undefined = undefined;
 
 export function createTestDispatchErrorCallback(eatError = false) {
-	return <Context, Protocol extends {} | undefined>(hsm: Hsm<Context, Protocol>, traceWriter: HsmTraceWriter, err: Error): void => {
+	return <Context, Protocol extends {} | undefined>(hsm: HsmBase<Context, Protocol>, err: Error): void => {
 		console.log(`
 // -------------------------------------------------------------------------------------------------------
 // The following error has escaped the dispatch (eat error = ${eatError})
 // -------------------------------------------------------------------------------------------------------
 `);
-		traceWriter.write(hsm, err);
+		hsm.traceWriter.write(hsm, err);
 		lastError = err;
 		if (!eatError) throw err;
 	};

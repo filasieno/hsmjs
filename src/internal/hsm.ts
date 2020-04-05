@@ -1,4 +1,4 @@
-import { HsmDispatchErrorCallback, HsmEventHandlerName, HsmEventHandlerPayload, HsmStateClass, HsmTraceLevel, HsmTraceWriter, HsmUnhandledEventError } from '../';
+import { HsmDispatchErrorCallback, HsmEventHandlerName, HsmEventHandlerPayload, HsmServiceResponse, HsmServiceName, HsmServiceRequest, HsmStateClass, HsmTraceLevel, HsmTraceWriter, HsmUnhandledEventError } from '../';
 import { HsmWithTracing, Instance, Task, Transition } from './defs.private';
 import { createEventDispatchTask as createEventDispatchVerboseDebug, createInitTask as createInitVerboseDebug } from './dispatch.trace';
 import { createEventDispatchTask as createEventDispatchDebug, createInitTask as createInitTaskDebug } from './dispatch.debug';
@@ -174,6 +174,13 @@ export class HsmObject<Context, Protocol extends {} | undefined> implements HsmW
 
 	get traceHeader(): string {
 		return `${this._traceDomainStack.length === 0 ? '' : this._traceDomainStack.join('|') + '|'}`;
+	}
+
+	call<EventName extends keyof Protocol>(eventName: HsmServiceName<Protocol, EventName>, ...eventPayload: HsmServiceRequest<Protocol, EventName>): Promise<HsmServiceResponse<Protocol, EventName>> {
+		return new Promise<HsmServiceResponse<Protocol, EventName>>((resolve: (result: HsmServiceResponse<Protocol, EventName>) => void, reject: (error: Error) => void) => {
+			const taskFactory: (hsm: any, name: HsmServiceName<Protocol, EventName>, ...payload: any[]) => Task = this._createEventDispatchTask as any;
+			this.pushTask(taskFactory(this, eventName, ...[resolve, reject, ...eventPayload]));
+		});
 	}
 
 }

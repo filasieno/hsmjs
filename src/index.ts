@@ -17,7 +17,7 @@ export type HsmAny = Record<string, any>;
  * @category Factory
  */
 export interface HsmDispatchErrorCallback<Context, Protocol extends {} | undefined> {
-	(hsm: Hsm<Context, Protocol>, traceWriter: HsmTraceWriter, err: Error): void;
+	(hsm: HsmBase<Context, Protocol>, err: Error): void;
 }
 // export type HsmDispatchErrorCallback<Context, Protocol extends {} | undefined> = (hsm: Hsm<Context, Protocol>, traceWriter: HsmTraceWriter, err: Error) => void;
 
@@ -82,6 +82,7 @@ export interface HsmState<Context, Protocol extends {} | undefined> extends HsmB
 export interface Hsm<Context = HsmAny, Protocol extends {} | undefined = undefined> extends HsmBase<Context, Protocol> {
 	sync(): Promise<void>;
 	restore(state: HsmStateClass<Context, Protocol>, ctx: Context): void;
+	call<EventName extends keyof Protocol>(eventName: HsmServiceName<Protocol, EventName>, ...eventPayload: HsmServiceRequest<Protocol, EventName>): Promise<HsmServiceResponse<Protocol, EventName>>;
 }
 
 /**
@@ -101,13 +102,39 @@ export type HsmEventHandlerPayload<Protocol extends {} | undefined, EventName ex
  * todo
  * @category State machine
  */
-export type HsmStateClass<UserData = HsmAny, Protocol extends {} | undefined = undefined> = Function & { prototype: HsmTopState<UserData, Protocol> };
+export type HsmStateClass<Context = HsmAny, Protocol extends {} | undefined = undefined> = Function & { prototype: HsmTopState<Context, Protocol> };
+
+/**
+ *
+ */
+export type HsmServiceRequest<Protocol, EventName extends keyof Protocol> = Protocol extends undefined ? any[] : Protocol[EventName] extends (resolve: (result: infer Reply) => void, reject: (error: infer Error) => void, ...payload: infer Payload) => Promise<void> | void ? (Payload extends any[] ? Payload : never) : never;
+
+/**
+ *
+ */
+export type HsmServiceResponse<Protocol, EventName extends keyof Protocol> = Protocol extends undefined ? any : Protocol[EventName] extends (resolve: infer Reply, reject: infer Error, ...payload: infer Payload) => Promise<void> | void ? Reply : never;
+
+/**
+ *
+ */
+export type HsmServiceName<Protocol, EventName> = Protocol extends undefined ? string : EventName extends keyof HsmState<any, any> ? never : EventName;
 
 /**
  * todo
  * @category State machine
  */
-export abstract class HsmTopState<Context = HsmAny, Protocol extends {} | undefined = undefined> implements HsmState<Context, Protocol> {
+export interface HsmStateMachineEvents<Context, Protocol> {
+	onExit(): Promise<void> | void;
+	onEntry(): Promise<void> | void;
+	onError<EventName extends keyof Protocol>(error: HsmRuntimeError<Context, Protocol, EventName>): Promise<void> | void;
+	onUnhandled<EventName extends keyof Protocol>(error: HsmUnhandledEventError<Context, Protocol, EventName>): Promise<void> | void;
+}
+
+/**
+ * todo
+ * @category State machine
+ */
+export abstract class HsmTopState<Context = HsmAny, Protocol extends {} | undefined = undefined> implements HsmState<Context, Protocol>, HsmStateMachineEvents<Context, Protocol> {
 	readonly ctx!: Context;
 	readonly hsm!: HsmState<Context, Protocol>;
 	constructor() {
@@ -322,9 +349,10 @@ class ConsoleTraceWriter implements HsmTraceWriter {
  * @category Factory
  */
 export class HsmFactory<Context, Protocol extends undefined | {}> {
-	private static defaultDispatchErrorCallback<Context, Protocol extends {} | undefined>(hsm: Hsm<Context, Protocol>, traceWriter: HsmTraceWriter, err: Error): void {
-		traceWriter.write(hsm, `An event dispatch has failed; error ${err.name}: ${err.message} has not been managed`);
-		traceWriter.write(hsm, err);
+	private static defaultDispatchErrorCallback<Context, Protocol extends {} | undefined>(hsm: HsmBase<Context, Protocol>, err: Error): void {
+		const writer = hsm.traceWriter;
+		writer.write(hsm, `An event dispatch has failed; error ${err.name}: ${err.message} has not been managed`);
+		writer.write(hsm, err);
 		throw err;
 	}
 	private static defaultTraceWriter = new ConsoleTraceWriter();
