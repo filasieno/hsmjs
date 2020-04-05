@@ -19,7 +19,7 @@ export type Task = (done: DoneCallback) => void;
 
 /** @internal */
 export interface HsmWithTracing<Context, Protocol extends {} | undefined> extends Hsm<Context, Protocol>, HsmState<Context, Protocol> {
-	_transitionCache: Map<[HsmStateClass<Context, Protocol>, HsmStateClass<Context, Protocol>], Transition<Context, Protocol>>;
+	_transitionCache: Map<string, Transition<Context, Protocol>>;
 	_createInitTask: <DispatchContext, DispatchProtocol extends {} | undefined>(hsm: HsmWithTracing<DispatchContext, DispatchProtocol>) => Task;
 	_createEventDispatchTask: <DispatchContext, DispatchProtocol extends {} | undefined, EventName extends keyof DispatchProtocol>(hsm: HsmWithTracing<DispatchContext, DispatchProtocol>, eventName: HsmEventHandlerName<DispatchProtocol, EventName>, ...eventPayload: HsmEventHandlerPayload<DispatchProtocol, EventName>) => Task;
 	_instance: Instance<Context, Protocol>;

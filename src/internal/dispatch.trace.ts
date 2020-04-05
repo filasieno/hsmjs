@@ -1,7 +1,7 @@
 import { HsmTopState, HsmEventHandlerError, HsmEventHandlerName, HsmEventHandlerPayload, HsmFatalErrorState, HsmInitializationError, HsmFatalError, HsmRuntimeError, HsmStateClass, HsmTransitionError, HsmUnhandledEventError } from '../';
 
 import { DoneCallback, HsmWithTracing, Task, Transition } from './defs.private';
-import { getInitialState, hasInitialState, quoteError } from './utils';
+import { getInitialState, getTransitionKey, hasInitialState, quoteError } from './utils';
 
 /** @internal */
 // eslint-disable-next-line valid-jsdoc
@@ -110,10 +110,14 @@ async function doTransition<Context, Protocol extends {} | undefined>(hsm: HsmWi
 			const srcState = hsm.currentState;
 			const destState = hsm._transitionState;
 			hsm._traceWrite(`requested transition from ${srcState.name} to ${destState.name} `);
-			let tr: Transition<Context, Protocol> | undefined = hsm._transitionCache.get([srcState, destState]);
-			if (!tr) {
-				tr = createTransition(hsm.currentState, destState);
-				hsm._transitionCache.set([hsm.currentState, destState], tr);
+			const transitionKey = getTransitionKey(srcState, destState);
+			let tr: Transition<Context, Protocol> | undefined = hsm._transitionCache.get(transitionKey);
+			if (tr) {
+				hsm._traceWrite(`transition cache hit for ${srcState.name} to ${destState.name} `);
+			} else {
+				hsm._traceWrite(`transition cache miss for ${srcState.name} to ${destState.name} `);
+				tr = createTransition(srcState, destState);
+				hsm._transitionCache.set(transitionKey, tr);
 			}
 			try {
 				await tr.execute(hsm, srcState, destState);
@@ -132,22 +136,20 @@ async function doTransition<Context, Protocol extends {} | undefined>(hsm: HsmWi
 /** @internal */
 // eslint-disable-next-line valid-jsdoc
 function lookupErrorHandler<Context, Protocol extends {} | undefined, EventName extends keyof Protocol>(hsm: HsmWithTracing<Context, Protocol>): (error: HsmRuntimeError<Context, Protocol, EventName>) => Promise<void> | void {
-	let state = hsm.currentState;
 	hsm._tracePush(`lookup`, `started lookup of #onError event handler`);
-	let output;
-	while (true) {
+	let state = hsm.currentState;
+	while (state != HsmTopState) {
 		const prototype = state.prototype;
 		if (Object.prototype.hasOwnProperty.call(prototype, 'onError')) {
 			hsm._tracePopDone(`found in state ${prototype.constructor.name}`);
-			output = prototype['onError'];
-			break;
+			return prototype['onError'];
 		} else {
 			hsm._traceWrite(`not found in state ${prototype.constructor.name}`);
-			if (state == HsmTopState) break;
 			state = Object.getPrototypeOf(state);
 		}
 	}
-	return output;
+	hsm._tracePopDone(`found in state ${HsmTopState.name}`);
+	return HsmTopState.prototype.onError;
 }
 
 /** @internal */
@@ -189,20 +191,20 @@ async function doError<Context, Protocol extends {} | undefined, EventName exten
 function lookupUnhandled<Context, Protocol extends {} | undefined, EventName extends keyof Protocol>(hsm: HsmWithTracing<Context, Protocol>): (error: HsmUnhandledEventError<Context, Protocol, EventName>) => Promise<void> | void {
 	let state = hsm.currentState;
 	hsm._tracePush(`lookup`, `started lookup of #onUnhandled event handler`);
-	let output;
 	while (true) {
 		const prototype = state.prototype;
 		if (Object.prototype.hasOwnProperty.call(prototype, 'onUnhandled')) {
 			hsm._tracePopDone(`found in state ${prototype.constructor.name}`);
-			output = prototype['onUnhandled'];
-			break;
+			return prototype.onUnhandled;
 		} else {
 			hsm._traceWrite(`not found in state ${prototype.constructor.name}`);
-			if (state == HsmTopState) break;
 			state = Object.getPrototypeOf(state);
+			if (state == HsmTopState) {
+				hsm._tracePopDone(`found in state ${prototype.constructor.name}`);
+				return prototype.onUnhandled;
+			}
 		}
 	}
-	return output;
 }
 
 /** @internal */

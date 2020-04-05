@@ -1,6 +1,6 @@
 import { HsmWithTracing, Instance } from './internal/defs.private';
 import { HsmObject } from './internal/hsm';
-import { hasInitialState } from './internal/utils';
+import { hasInitialState, quoteError } from './internal/utils';
 
 /**
  * todo
@@ -216,15 +216,19 @@ export abstract class HsmTopState<Context = HsmAny, Protocol extends {} | undefi
  * @category Error
  */
 export abstract class HsmError<Context, Protocol extends {} | undefined> extends Error {
+	name: string;
 	hsmTopStateName: string;
 	hsmStateName: string;
 	hsmContext: Context;
+	cause?: Error;
 
-	protected constructor(public name: string, hsm: HsmState<Context, Protocol>, message: string, public cause?: Error) {
+	protected constructor(name: string, hsm: HsmState<Context, Protocol>, message: string, cause?: Error) {
 		super(message);
+		this.name = name;
 		this.hsmTopStateName = hsm.topStateName;
 		this.hsmStateName = hsm.currentState.name;
 		this.hsmContext = hsm.ctx;
+		this.cause = cause;
 	}
 }
 
@@ -287,7 +291,7 @@ export class HsmInitialStateError<Context, Protocol extends {} | undefined> exte
  */
 export class HsmFatalError<Context, Protocol extends {} | undefined, EventName extends keyof Protocol> extends HsmRuntimeError<Context, Protocol, EventName> {
 	constructor(hsm: HsmState<Context, Protocol>, cause: Error) {
-		super('HsmFatalError', hsm, `onError() has thrown ${cause.name}${cause.message ? `: ${cause.message}` : ' with no error message'}`, cause);
+		super('HsmFatalError', hsm, `onError() has thrown ${quoteError(cause)}`, cause);
 	}
 }
 
@@ -296,7 +300,7 @@ export class HsmFatalError<Context, Protocol extends {} | undefined, EventName e
  */
 export class HsmInitializationError<Context, Protocol extends {} | undefined> extends HsmError<Context, Protocol> {
 	constructor(hsm: HsmState<Context, Protocol>, public failedState: HsmStateClass<Context, Protocol>, cause: Error) {
-		super('HsmInitializationError', hsm, `state ${failedState.name} has thrown ${cause.name}${cause.message ? `: ${cause.message}` : ' with no error message'} during initialization`, cause);
+		super('HsmInitializationError', hsm, `state ${failedState.name} has thrown ${quoteError(cause)} during initialization`, cause);
 	}
 }
 

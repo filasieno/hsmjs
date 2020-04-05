@@ -1,7 +1,7 @@
 import { HsmTopState, HsmEventHandlerError, HsmEventHandlerName, HsmEventHandlerPayload, HsmFatalErrorState, HsmInitializationError, HsmFatalError, HsmStateClass, HsmTransitionError, HsmUnhandledEventError } from '../';
 
 import { DoneCallback, HsmWithTracing, Task, Transition } from './defs.private';
-import { getInitialState, hasInitialState } from './utils';
+import { getInitialState, getTransitionKey, hasInitialState } from './utils';
 
 class ProductionTransition<Context, Protocol extends {} | undefined, EventName extends keyof Protocol> implements Transition<Context, Protocol> {
 	constructor(private exitList: Array<HsmStateClass<Context, Protocol>>, private entryList: Array<HsmStateClass<Context, Protocol>>, private finalState?: HsmStateClass<Context, Protocol>) {}
@@ -90,10 +90,11 @@ async function doTransition<Context, Protocol extends {} | undefined>(hsm: HsmWi
 		try {
 			const srcState = hsm.currentState;
 			const destState = hsm._transitionState;
-			let tr: Transition<Context, Protocol> | undefined = hsm._transitionCache.get([srcState, destState]);
+			const transitionKey = getTransitionKey(srcState, destState);
+			let tr: Transition<Context, Protocol> | undefined = hsm._transitionCache.get(transitionKey);
 			if (!tr) {
-				tr = createTransition(hsm.currentState, destState);
-				hsm._transitionCache.set([hsm.currentState, destState], tr);
+				tr = createTransition(srcState, destState);
+				hsm._transitionCache.set(transitionKey, tr);
 			}
 			try {
 				await tr.execute(hsm, srcState, destState);

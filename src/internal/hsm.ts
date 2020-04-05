@@ -36,7 +36,7 @@ export class HsmObject<Context, Protocol extends {} | undefined> implements HsmW
 	public traceWriter: HsmTraceWriter;
 
 	public _instance: Instance<Context, Protocol>;
-	public _transitionCache: Map<[HsmStateClass<Context, Protocol>, HsmStateClass<Context, Protocol>], Transition<Context, Protocol>> = new Map();
+	public _transitionCache: Map<string, Transition<Context, Protocol>> = new Map();
 	public _jobs: Task[];
 	private _isRunning = false;
 	public _transitionState?: HsmStateClass<Context, Protocol>;
